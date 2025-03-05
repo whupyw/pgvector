@@ -12,28 +12,28 @@
 #include "utils/sampling.h"
 #include "vector.h"
 
-#define HNSW_MAX_DIM 2000
-#define HNSW_MAX_NNZ 1000
+#define HNSW_MAX_DIM 2000 // 向量最大维度
+#define HNSW_MAX_NNZ 1000 // 稀疏向量最大非零元素数
 
 /* Support functions */
-#define HNSW_DISTANCE_PROC 1
-#define HNSW_NORM_PROC 2
-#define HNSW_TYPE_INFO_PROC 3
+#define HNSW_DISTANCE_PROC 1  // 距离函数标识
+#define HNSW_NORM_PROC 2	  // 归一化函数标识
+#define HNSW_TYPE_INFO_PROC 3 // 类型信息函数标识
 
-#define HNSW_VERSION	1
-#define HNSW_MAGIC_NUMBER 0xA953A953
-#define HNSW_PAGE_ID	0xFF90
+#define HNSW_VERSION 1				 // 索引格式版本
+#define HNSW_MAGIC_NUMBER 0xA953A953 // 文件魔数校验
+#define HNSW_PAGE_ID 0xFF90			 // 页面类型标识
 
 /* Preserved page numbers */
-#define HNSW_METAPAGE_BLKNO	0
-#define HNSW_HEAD_BLKNO		1	/* first element page */
+#define HNSW_METAPAGE_BLKNO 0 // 元数据页块号
+#define HNSW_HEAD_BLKNO 1	  // 首元素页块号
 
 /* Must correspond to page numbers since page lock is used */
-#define HNSW_UPDATE_LOCK 	0
-#define HNSW_SCAN_LOCK		1
+#define HNSW_UPDATE_LOCK 	0 // 更新锁
+#define HNSW_SCAN_LOCK		1 // 扫描锁
 
 /* HNSW parameters */
-#define HNSW_DEFAULT_M	16
+#define HNSW_DEFAULT_M 16
 #define HNSW_MIN_M	2
 #define HNSW_MAX_M		100
 #define HNSW_DEFAULT_EF_CONSTRUCTION	64
@@ -68,7 +68,7 @@
 #define HnswPageGetOpaque(page)	((HnswPageOpaque) PageGetSpecialPointer(page))
 #define HnswPageGetMeta(page)	((HnswMetaPageData *) PageGetContents(page))
 
-#if PG_VERSION_NUM >= 150000
+#if PG_VERSION_NUM >= 150000 // PG15+
 #define RandomDouble() pg_prng_double(&pg_global_prng_state)
 #define SeedRandom(seed) pg_prng_seed(&pg_global_prng_state, seed)
 #else

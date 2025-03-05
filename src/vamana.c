@@ -1,11 +1,70 @@
 #include "postgres.h"
 
 #include "access/amapi.h"
+#include "access/reloptions.h"
+#include "commands/progress.h"
 #include "commands/vacuum.h"
-#include "nodes/execnodes.h"
 #include "vamana.h"
+#include "miscadmin.h"
+#include "utils/float.h"
+#include "utils/guc.h"
+#include "utils/selfuncs.h"
+#include "utils/spccache.h"
 
 PG_FUNCTION_INFO_V1(vamanahandler);
+
+/* 代价估算函数 */
+static void vamanacostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
+                               Cost *indexStartupCost, Cost *indexTotalCost,
+                               Selectivity *indexSelectivity, double *indexCorrelation,
+                               double *indexPages)
+{
+    // // 简单的代价估算
+    // *indexStartupCost = 0;
+    // *indexTotalCost = path->indexinfo->tuples * loop_count * cpu_index_tuple_cost;
+    // *indexSelectivity = 1.0 / path->indexinfo->tuples;
+    // *indexCorrelation = 0;
+    // *indexPages = path->indexinfo->pages;
+}
+
+/* 索引选项函数 */
+
+static bytea *
+vamanaoptions(Datum reloptions, bool validate)
+{
+    // static const relopt_parse_elt tab[] = {
+    //     {"r", RELOPT_TYPE_INT, offsetof(VamanaOptions, r)},
+    //     {"l", RELOPT_TYPE_INT, offsetof(VamanaOptions, l)},
+    //     {"alpha", RELOPT_TYPE_REAL, offsetof(VamanaOptions, alpha)}};
+
+    // return (bytea *)build_reloptions(reloptions, validate,
+    //                                  RELOPT_KIND_VAMANA,
+    //                                  sizeof(VamanaOptions),
+    //                                  tab, lengthof(tab));
+    return NULL;
+}
+
+/* 构建阶段名称函数 */
+static char *
+vamanabuildphasename(int64 phasenum)
+{
+    switch (phasenum)
+    {
+    case PROGRESS_CREATEIDX_SUBPHASE_INITIALIZE:
+        return "initializing";
+    case PROGRESS_VAMANA_PHASE_LOAD:
+        return "loading tuples";
+    default:
+        return NULL;
+    }
+}
+
+/* 验证函数 */
+static bool vamanavalidate(Oid opclassoid)
+{
+    // 简单返回true,表示总是有效
+    return true;
+}
 
 /*
  * 定义索引访问方法处理函数
@@ -39,9 +98,9 @@ Datum vamanahandler(PG_FUNCTION_ARGS)
 
     /* 接口函数 */
     /* 索引构建相关函数 */
-    amroutine->ambuild = VamanaBuild;
+    amroutine->ambuild = vamanabuild;
     amroutine->ambuildempty = vamanabuildempty;
-    amroutine->aminsert = VamanaInsert;
+    amroutine->aminsert = vamanainsert;
     amroutine->ambulkdelete = vamanabulkdelete;
     amroutine->amvacuumcleanup = vamanavacuumcleanup;
 
@@ -54,11 +113,11 @@ Datum vamanahandler(PG_FUNCTION_ARGS)
     amroutine->amvalidate = vamanavalidate;
 
     /* 扫描迭代器函数 */
-    amroutine->ambeginscan = VamanaBeginscan;
-    amroutine->amrescan = VamanaRescan;
-    amroutine->amgettuple = VamanaGettuple;
+    amroutine->ambeginscan = vamanabeginscan;
+    amroutine->amrescan = vamanarescan;
+    amroutine->amgettuple = vamanagettuple;
     amroutine->amgetbitmap = NULL; /* 不支持bitmap扫描 */
-    amroutine->amendscan = VamanaEndscan;
+    amroutine->amendscan = vamanaendscan;
     amroutine->ammarkpos = NULL;  /* 不支持标记位置 */
     amroutine->amrestrpos = NULL; /* 不支持恢复位置 */
 
@@ -68,90 +127,4 @@ Datum vamanahandler(PG_FUNCTION_ARGS)
     amroutine->amparallelrescan = NULL;
 
     PG_RETURN_POINTER(amroutine);
-}
-
-/* 空索引构建函数 */
-void vamanabuildempty(Relation index)
-{
-    // 创建空的元页面
-    Buffer buf;
-    Page page;
-
-    buf = ReadBuffer(index, P_NEW);
-    LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);
-
-    page = BufferGetPage(buf);
-
-    // 初始化页面
-    VamanaInitPage(buf, page);
-
-    UnlockReleaseBuffer(buf);
-}
-
-/* 批量删除函数 */
-IndexBulkDeleteResult *
-vamanabulkdelete(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
-                 IndexBulkDeleteCallback callback, void *callback_state)
-{
-    // 暂时返回NULL,表示不支持批量删除
-    return NULL;
-}
-
-/* 清理函数 */
-IndexBulkDeleteResult *
-vamanavacuumcleanup(IndexVacuumInfo *info, IndexBulkDeleteResult *stats)
-{
-    // 暂时返回NULL,表示不需要清理
-    return NULL;
-}
-
-/* 代价估算函数 */
-void vamanacostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
-                        Cost *indexStartupCost, Cost *indexTotalCost,
-                        Selectivity *indexSelectivity, double *indexCorrelation,
-                        double *indexPages)
-{
-    // 简单的代价估算
-    *indexStartupCost = 0;
-    *indexTotalCost = path->indexinfo->tuples * loop_count * cpu_index_tuple_cost;
-    *indexSelectivity = 1.0 / path->indexinfo->tuples;
-    *indexCorrelation = 0;
-    *indexPages = path->indexinfo->pages;
-}
-
-/* 索引选项函数 */
-bytea *
-vamanaoptions(Datum reloptions, bool validate)
-{
-    static const relopt_parse_elt tab[] = {
-        {"r", RELOPT_TYPE_INT, offsetof(VamanaOptions, r)},
-        {"l", RELOPT_TYPE_INT, offsetof(VamanaOptions, l)},
-        {"alpha", RELOPT_TYPE_REAL, offsetof(VamanaOptions, alpha)}};
-
-    return (bytea *)build_reloptions(reloptions, validate,
-                                     RELOPT_KIND_VAMANA,
-                                     sizeof(VamanaOptions),
-                                     tab, lengthof(tab));
-}
-
-/* 构建阶段名称函数 */
-static char *
-vamanabuildphasename(int64 phasenum)
-{
-    switch (phasenum)
-    {
-    case PROGRESS_CREATEIDX_SUBPHASE_INITIALIZE:
-        return "initializing";
-    case PROGRESS_VAMANA_PHASE_LOAD:
-        return "loading tuples";
-    default:
-        return NULL;
-    }
-}
-
-/* 验证函数 */
-bool vamanavalidate(Oid opclassoid)
-{
-    // 简单返回true,表示总是有效
-    return true;
 }

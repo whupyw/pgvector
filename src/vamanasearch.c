@@ -31,7 +31,7 @@ SearchVamanaGraph(Relation index, Datum query, int k)
 }
 
 /* 扫描函数 */
-bool VamanaGettuple(IndexScanDesc scan, ScanDirection dir)
+bool vamanagettuple(IndexScanDesc scan, ScanDirection dir)
 {
     VamanaScanOpaque so = (VamanaScanOpaque)scan->opaque;
 
