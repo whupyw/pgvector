@@ -18,7 +18,7 @@
 #include "libpq/pqformat.h"
 #include "libpq/libpq.h"
 #include "executor/spi.h"
-#include "port.h"				/* for strtof() */
+#include "port.h" /* for strtof() */
 #include "sparsevec.h"
 #include "utils/array.h"
 #include "utils/builtins.h"
@@ -46,8 +46,7 @@ PG_MODULE_MAGIC;
  * Initialize index options and variables
  */
 PGDLLEXPORT void _PG_init(void);
-void
-_PG_init(void)
+void _PG_init(void)
 {
 	BitvecInit();
 	HalfvecInit();
@@ -59,7 +58,7 @@ _PG_init(void)
  * Ensure same dimensions
  */
 static inline void
-CheckDims(Vector * a, Vector * b)
+CheckDims(Vector *a, Vector *b)
 {
 	if (a->dim != b->dim)
 		ereport(ERROR,
@@ -119,11 +118,11 @@ CheckElement(float value)
 Vector *
 InitVector(int dim)
 {
-	Vector	   *result;
-	int			size;
+	Vector *result;
+	int size;
 
 	size = VECTOR_SIZE(dim);
-	result = (Vector *) palloc0(size);
+	result = (Vector *)palloc0(size);
 	SET_VARSIZE(result, size);
 	result->dim = dim;
 
@@ -157,22 +156,21 @@ CheckStateArray(ArrayType *statearray, const char *caller)
 		ARR_HASNULL(statearray) ||
 		ARR_ELEMTYPE(statearray) != FLOAT8OID)
 		elog(ERROR, "%s: expected state array", caller);
-	return (float8 *) ARR_DATA_PTR(statearray);
+	return (float8 *)ARR_DATA_PTR(statearray);
 }
 
 /*
  * Convert textual representation to internal representation
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_in);
-Datum
-vector_in(PG_FUNCTION_ARGS)
+Datum vector_in(PG_FUNCTION_ARGS)
 {
-	char	   *lit = PG_GETARG_CSTRING(0);
-	int32		typmod = PG_GETARG_INT32(2);
-	float		x[VECTOR_MAX_DIM];
-	int			dim = 0;
-	char	   *pt = lit;
-	Vector	   *result;
+	char *lit = PG_GETARG_CSTRING(0);
+	int32 typmod = PG_GETARG_INT32(2);
+	float x[VECTOR_MAX_DIM];
+	int dim = 0;
+	char *pt = lit;
+	Vector *result;
 
 	while (vector_isspace(*pt))
 		pt++;
@@ -195,8 +193,8 @@ vector_in(PG_FUNCTION_ARGS)
 
 	for (;;)
 	{
-		float		val;
-		char	   *stringEnd;
+		float val;
+		char *stringEnd;
 
 		if (dim == VECTOR_MAX_DIM)
 			ereport(ERROR,
@@ -277,13 +275,12 @@ vector_in(PG_FUNCTION_ARGS)
  * Convert internal representation to textual representation
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_out);
-Datum
-vector_out(PG_FUNCTION_ARGS)
+Datum vector_out(PG_FUNCTION_ARGS)
 {
-	Vector	   *vector = PG_GETARG_VECTOR_P(0);
-	int			dim = vector->dim;
-	char	   *buf;
-	char	   *ptr;
+	Vector *vector = PG_GETARG_VECTOR_P(0);
+	int dim = vector->dim;
+	char *buf;
+	char *ptr;
 
 	/*
 	 * Need:
@@ -295,7 +292,7 @@ vector_out(PG_FUNCTION_ARGS)
 	 *
 	 * 3 bytes for [, ], and \0
 	 */
-	buf = (char *) palloc(FLOAT_SHORTEST_DECIMAL_LEN * dim + 2);
+	buf = (char *)palloc(FLOAT_SHORTEST_DECIMAL_LEN * dim + 2);
 	ptr = buf;
 
 	AppendChar(ptr, '[');
@@ -318,10 +315,9 @@ vector_out(PG_FUNCTION_ARGS)
 /*
  * Print vector - useful for debugging
  */
-void
-PrintVector(char *msg, Vector * vector)
+void PrintVector(char *msg, Vector *vector)
 {
-	char	   *out = DatumGetPointer(DirectFunctionCall1(vector_out, PointerGetDatum(vector)));
+	char *out = DatumGetPointer(DirectFunctionCall1(vector_out, PointerGetDatum(vector)));
 
 	elog(INFO, "%s = %s", msg, out);
 	pfree(out);
@@ -331,12 +327,11 @@ PrintVector(char *msg, Vector * vector)
  * Convert type modifier
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_typmod_in);
-Datum
-vector_typmod_in(PG_FUNCTION_ARGS)
+Datum vector_typmod_in(PG_FUNCTION_ARGS)
 {
-	ArrayType  *ta = PG_GETARG_ARRAYTYPE_P(0);
-	int32	   *tl;
-	int			n;
+	ArrayType *ta = PG_GETARG_ARRAYTYPE_P(0);
+	int32 *tl;
+	int n;
 
 	tl = ArrayGetIntegerTypmods(ta, &n);
 
@@ -362,14 +357,13 @@ vector_typmod_in(PG_FUNCTION_ARGS)
  * Convert external binary representation to internal representation
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_recv);
-Datum
-vector_recv(PG_FUNCTION_ARGS)
+Datum vector_recv(PG_FUNCTION_ARGS)
 {
-	StringInfo	buf = (StringInfo) PG_GETARG_POINTER(0);
-	int32		typmod = PG_GETARG_INT32(2);
-	Vector	   *result;
-	int16		dim;
-	int16		unused;
+	StringInfo buf = (StringInfo)PG_GETARG_POINTER(0);
+	int32 typmod = PG_GETARG_INT32(2);
+	Vector *result;
+	int16 dim;
+	int16 unused;
 
 	dim = pq_getmsgint(buf, sizeof(int16));
 	unused = pq_getmsgint(buf, sizeof(int16));
@@ -396,10 +390,9 @@ vector_recv(PG_FUNCTION_ARGS)
  * Convert internal representation to the external binary representation
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_send);
-Datum
-vector_send(PG_FUNCTION_ARGS)
+Datum vector_send(PG_FUNCTION_ARGS)
 {
-	Vector	   *vec = PG_GETARG_VECTOR_P(0);
+	Vector *vec = PG_GETARG_VECTOR_P(0);
 	StringInfoData buf;
 
 	pq_begintypsend(&buf);
@@ -416,11 +409,10 @@ vector_send(PG_FUNCTION_ARGS)
  * This is needed to check the type modifier
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector);
-Datum
-vector(PG_FUNCTION_ARGS)
+Datum vector(PG_FUNCTION_ARGS)
 {
-	Vector	   *vec = PG_GETARG_VECTOR_P(0);
-	int32		typmod = PG_GETARG_INT32(1);
+	Vector *vec = PG_GETARG_VECTOR_P(0);
+	int32 typmod = PG_GETARG_INT32(1);
 
 	CheckExpectedDim(typmod, vec->dim);
 
@@ -431,17 +423,16 @@ vector(PG_FUNCTION_ARGS)
  * Convert array to vector
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(array_to_vector);
-Datum
-array_to_vector(PG_FUNCTION_ARGS)
+Datum array_to_vector(PG_FUNCTION_ARGS)
 {
-	ArrayType  *array = PG_GETARG_ARRAYTYPE_P(0);
-	int32		typmod = PG_GETARG_INT32(1);
-	Vector	   *result;
-	int16		typlen;
-	bool		typbyval;
-	char		typalign;
-	Datum	   *elemsp;
-	int			nelemsp;
+	ArrayType *array = PG_GETARG_ARRAYTYPE_P(0);
+	int32 typmod = PG_GETARG_INT32(1);
+	Vector *result;
+	int16 typlen;
+	bool typbyval;
+	char typalign;
+	Datum *elemsp;
+	int nelemsp;
 
 	if (ARR_NDIM(array) > 1)
 		ereport(ERROR,
@@ -505,14 +496,13 @@ array_to_vector(PG_FUNCTION_ARGS)
  * Convert vector to float4[]
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_to_float4);
-Datum
-vector_to_float4(PG_FUNCTION_ARGS)
+Datum vector_to_float4(PG_FUNCTION_ARGS)
 {
-	Vector	   *vec = PG_GETARG_VECTOR_P(0);
-	Datum	   *datums;
-	ArrayType  *result;
+	Vector *vec = PG_GETARG_VECTOR_P(0);
+	Datum *datums;
+	ArrayType *result;
 
-	datums = (Datum *) palloc(sizeof(Datum) * vec->dim);
+	datums = (Datum *)palloc(sizeof(Datum) * vec->dim);
 
 	for (int i = 0; i < vec->dim; i++)
 		datums[i] = Float4GetDatum(vec->x[i]);
@@ -529,12 +519,11 @@ vector_to_float4(PG_FUNCTION_ARGS)
  * Convert half vector to vector
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(halfvec_to_vector);
-Datum
-halfvec_to_vector(PG_FUNCTION_ARGS)
+Datum halfvec_to_vector(PG_FUNCTION_ARGS)
 {
 	HalfVector *vec = PG_GETARG_HALFVEC_P(0);
-	int32		typmod = PG_GETARG_INT32(1);
-	Vector	   *result;
+	int32 typmod = PG_GETARG_INT32(1);
+	Vector *result;
 
 	CheckDim(vec->dim);
 	CheckExpectedDim(typmod, vec->dim);
@@ -550,12 +539,12 @@ halfvec_to_vector(PG_FUNCTION_ARGS)
 VECTOR_TARGET_CLONES static float
 VectorL2SquaredDistance(int dim, float *ax, float *bx)
 {
-	float		distance = 0.0;
+	float distance = 0.0;
 
 	/* Auto-vectorized */
 	for (int i = 0; i < dim; i++)
 	{
-		float		diff = ax[i] - bx[i];
+		float diff = ax[i] - bx[i];
 
 		distance += diff * diff;
 	}
@@ -567,15 +556,14 @@ VectorL2SquaredDistance(int dim, float *ax, float *bx)
  * Get the L2 distance between vectors
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(l2_distance);
-Datum
-l2_distance(PG_FUNCTION_ARGS)
+Datum l2_distance(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
 
 	CheckDims(a, b);
 
-	PG_RETURN_FLOAT8(sqrt((double) VectorL2SquaredDistance(a->dim, a->x, b->x)));
+	PG_RETURN_FLOAT8(sqrt((double)VectorL2SquaredDistance(a->dim, a->x, b->x)));
 }
 
 /*
@@ -583,21 +571,20 @@ l2_distance(PG_FUNCTION_ARGS)
  * This saves a sqrt calculation
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_l2_squared_distance);
-Datum
-vector_l2_squared_distance(PG_FUNCTION_ARGS)
+Datum vector_l2_squared_distance(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
 
 	CheckDims(a, b);
 
-	PG_RETURN_FLOAT8((double) VectorL2SquaredDistance(a->dim, a->x, b->x));
+	PG_RETURN_FLOAT8((double)VectorL2SquaredDistance(a->dim, a->x, b->x));
 }
 
 VECTOR_TARGET_CLONES static float
 VectorInnerProduct(int dim, float *ax, float *bx)
 {
-	float		distance = 0.0;
+	float distance = 0.0;
 
 	/* Auto-vectorized */
 	for (int i = 0; i < dim; i++)
@@ -610,38 +597,36 @@ VectorInnerProduct(int dim, float *ax, float *bx)
  * Get the inner product of two vectors
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(inner_product);
-Datum
-inner_product(PG_FUNCTION_ARGS)
+Datum inner_product(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
 
 	CheckDims(a, b);
 
-	PG_RETURN_FLOAT8((double) VectorInnerProduct(a->dim, a->x, b->x));
+	PG_RETURN_FLOAT8((double)VectorInnerProduct(a->dim, a->x, b->x));
 }
 
 /*
  * Get the negative inner product of two vectors
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_negative_inner_product);
-Datum
-vector_negative_inner_product(PG_FUNCTION_ARGS)
+Datum vector_negative_inner_product(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
 
 	CheckDims(a, b);
 
-	PG_RETURN_FLOAT8((double) -VectorInnerProduct(a->dim, a->x, b->x));
+	PG_RETURN_FLOAT8((double)-VectorInnerProduct(a->dim, a->x, b->x));
 }
 
 VECTOR_TARGET_CLONES static double
 VectorCosineSimilarity(int dim, float *ax, float *bx)
 {
-	float		similarity = 0.0;
-	float		norma = 0.0;
-	float		normb = 0.0;
+	float similarity = 0.0;
+	float norma = 0.0;
+	float normb = 0.0;
 
 	/* Auto-vectorized */
 	for (int i = 0; i < dim; i++)
@@ -652,19 +637,18 @@ VectorCosineSimilarity(int dim, float *ax, float *bx)
 	}
 
 	/* Use sqrt(a * b) over sqrt(a) * sqrt(b) */
-	return (double) similarity / sqrt((double) norma * (double) normb);
+	return (double)similarity / sqrt((double)norma * (double)normb);
 }
 
 /*
  * Get the cosine distance between two vectors
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(cosine_distance);
-Datum
-cosine_distance(PG_FUNCTION_ARGS)
+Datum cosine_distance(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
-	double		similarity;
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
+	double similarity;
 
 	CheckDims(a, b);
 
@@ -691,16 +675,15 @@ cosine_distance(PG_FUNCTION_ARGS)
  * Assumes inputs are unit vectors (skips norm)
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_spherical_distance);
-Datum
-vector_spherical_distance(PG_FUNCTION_ARGS)
+Datum vector_spherical_distance(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
-	double		distance;
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
+	double distance;
 
 	CheckDims(a, b);
 
-	distance = (double) VectorInnerProduct(a->dim, a->x, b->x);
+	distance = (double)VectorInnerProduct(a->dim, a->x, b->x);
 
 	/* Prevent NaN with acos with loss of precision */
 	if (distance > 1)
@@ -715,7 +698,7 @@ vector_spherical_distance(PG_FUNCTION_ARGS)
 VECTOR_TARGET_CLONES static float
 VectorL1Distance(int dim, float *ax, float *bx)
 {
-	float		distance = 0.0;
+	float distance = 0.0;
 
 	/* Auto-vectorized */
 	for (int i = 0; i < dim; i++)
@@ -728,25 +711,23 @@ VectorL1Distance(int dim, float *ax, float *bx)
  * Get the L1 distance between two vectors
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(l1_distance);
-Datum
-l1_distance(PG_FUNCTION_ARGS)
+Datum l1_distance(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
 
 	CheckDims(a, b);
 
-	PG_RETURN_FLOAT8((double) VectorL1Distance(a->dim, a->x, b->x));
+	PG_RETURN_FLOAT8((double)VectorL1Distance(a->dim, a->x, b->x));
 }
 
 /*
  * Get the dimensions of a vector
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_dims);
-Datum
-vector_dims(PG_FUNCTION_ARGS)
+Datum vector_dims(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
+	Vector *a = PG_GETARG_VECTOR_P(0);
 
 	PG_RETURN_INT32(a->dim);
 }
@@ -755,16 +736,15 @@ vector_dims(PG_FUNCTION_ARGS)
  * Get the L2 norm of a vector
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_norm);
-Datum
-vector_norm(PG_FUNCTION_ARGS)
+Datum vector_norm(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	float	   *ax = a->x;
-	double		norm = 0.0;
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	float *ax = a->x;
+	double norm = 0.0;
 
 	/* Auto-vectorized */
 	for (int i = 0; i < a->dim; i++)
-		norm += (double) ax[i] * (double) ax[i];
+		norm += (double)ax[i] * (double)ax[i];
 
 	PG_RETURN_FLOAT8(sqrt(norm));
 }
@@ -773,21 +753,20 @@ vector_norm(PG_FUNCTION_ARGS)
  * Normalize a vector with the L2 norm
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(l2_normalize);
-Datum
-l2_normalize(PG_FUNCTION_ARGS)
+Datum l2_normalize(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	float	   *ax = a->x;
-	double		norm = 0;
-	Vector	   *result;
-	float	   *rx;
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	float *ax = a->x;
+	double norm = 0;
+	Vector *result;
+	float *rx;
 
 	result = InitVector(a->dim);
 	rx = result->x;
 
 	/* Auto-vectorized */
 	for (int i = 0; i < a->dim; i++)
-		norm += (double) ax[i] * (double) ax[i];
+		norm += (double)ax[i] * (double)ax[i];
 
 	norm = sqrt(norm);
 
@@ -812,15 +791,14 @@ l2_normalize(PG_FUNCTION_ARGS)
  * Add vectors
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_add);
-Datum
-vector_add(PG_FUNCTION_ARGS)
+Datum vector_add(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
-	float	   *ax = a->x;
-	float	   *bx = b->x;
-	Vector	   *result;
-	float	   *rx;
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
+	float *ax = a->x;
+	float *bx = b->x;
+	Vector *result;
+	float *rx;
 
 	CheckDims(a, b);
 
@@ -845,15 +823,14 @@ vector_add(PG_FUNCTION_ARGS)
  * Subtract vectors
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_sub);
-Datum
-vector_sub(PG_FUNCTION_ARGS)
+Datum vector_sub(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
-	float	   *ax = a->x;
-	float	   *bx = b->x;
-	Vector	   *result;
-	float	   *rx;
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
+	float *ax = a->x;
+	float *bx = b->x;
+	Vector *result;
+	float *rx;
 
 	CheckDims(a, b);
 
@@ -878,15 +855,14 @@ vector_sub(PG_FUNCTION_ARGS)
  * Multiply vectors
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_mul);
-Datum
-vector_mul(PG_FUNCTION_ARGS)
+Datum vector_mul(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
-	float	   *ax = a->x;
-	float	   *bx = b->x;
-	Vector	   *result;
-	float	   *rx;
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
+	float *ax = a->x;
+	float *bx = b->x;
+	Vector *result;
+	float *rx;
 
 	CheckDims(a, b);
 
@@ -914,13 +890,12 @@ vector_mul(PG_FUNCTION_ARGS)
  * Concatenate vectors
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_concat);
-Datum
-vector_concat(PG_FUNCTION_ARGS)
+Datum vector_concat(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
-	Vector	   *result;
-	int			dim = a->dim + b->dim;
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
+	Vector *result;
+	int dim = a->dim + b->dim;
 
 	CheckDim(dim);
 	result = InitVector(dim);
@@ -938,12 +913,11 @@ vector_concat(PG_FUNCTION_ARGS)
  * Quantize a vector
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(binary_quantize);
-Datum
-binary_quantize(PG_FUNCTION_ARGS)
+Datum binary_quantize(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	float	   *ax = a->x;
-	VarBit	   *result = InitBitVector(a->dim);
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	float *ax = a->x;
+	VarBit *result = InitBitVector(a->dim);
 	unsigned char *rx = VARBITS(result);
 
 	for (int i = 0; i < a->dim; i++)
@@ -956,16 +930,15 @@ binary_quantize(PG_FUNCTION_ARGS)
  * Get a subvector
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(subvector);
-Datum
-subvector(PG_FUNCTION_ARGS)
+Datum subvector(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	int32		start = PG_GETARG_INT32(1);
-	int32		count = PG_GETARG_INT32(2);
-	int32		end;
-	float	   *ax = a->x;
-	Vector	   *result;
-	int			dim;
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	int32 start = PG_GETARG_INT32(1);
+	int32 count = PG_GETARG_INT32(2);
+	int32 end;
+	float *ax = a->x;
+	Vector *result;
+	int dim;
 
 	if (count < 1)
 		ereport(ERROR,
@@ -1002,10 +975,9 @@ subvector(PG_FUNCTION_ARGS)
 /*
  * Internal helper to compare vectors
  */
-int
-vector_cmp_internal(Vector * a, Vector * b)
+int vector_cmp_internal(Vector *a, Vector *b)
 {
-	int			dim = Min(a->dim, b->dim);
+	int dim = Min(a->dim, b->dim);
 
 	/* Check values before dimensions to be consistent with Postgres arrays */
 	for (int i = 0; i < dim; i++)
@@ -1030,11 +1002,10 @@ vector_cmp_internal(Vector * a, Vector * b)
  * Less than
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_lt);
-Datum
-vector_lt(PG_FUNCTION_ARGS)
+Datum vector_lt(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
 
 	PG_RETURN_BOOL(vector_cmp_internal(a, b) < 0);
 }
@@ -1043,11 +1014,10 @@ vector_lt(PG_FUNCTION_ARGS)
  * Less than or equal
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_le);
-Datum
-vector_le(PG_FUNCTION_ARGS)
+Datum vector_le(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
 
 	PG_RETURN_BOOL(vector_cmp_internal(a, b) <= 0);
 }
@@ -1056,11 +1026,10 @@ vector_le(PG_FUNCTION_ARGS)
  * Equal
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_eq);
-Datum
-vector_eq(PG_FUNCTION_ARGS)
+Datum vector_eq(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
 
 	PG_RETURN_BOOL(vector_cmp_internal(a, b) == 0);
 }
@@ -1069,11 +1038,10 @@ vector_eq(PG_FUNCTION_ARGS)
  * Not equal
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_ne);
-Datum
-vector_ne(PG_FUNCTION_ARGS)
+Datum vector_ne(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
 
 	PG_RETURN_BOOL(vector_cmp_internal(a, b) != 0);
 }
@@ -1082,11 +1050,10 @@ vector_ne(PG_FUNCTION_ARGS)
  * Greater than or equal
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_ge);
-Datum
-vector_ge(PG_FUNCTION_ARGS)
+Datum vector_ge(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
 
 	PG_RETURN_BOOL(vector_cmp_internal(a, b) >= 0);
 }
@@ -1095,11 +1062,10 @@ vector_ge(PG_FUNCTION_ARGS)
  * Greater than
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_gt);
-Datum
-vector_gt(PG_FUNCTION_ARGS)
+Datum vector_gt(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
 
 	PG_RETURN_BOOL(vector_cmp_internal(a, b) > 0);
 }
@@ -1108,11 +1074,10 @@ vector_gt(PG_FUNCTION_ARGS)
  * Compare vectors
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_cmp);
-Datum
-vector_cmp(PG_FUNCTION_ARGS)
+Datum vector_cmp(PG_FUNCTION_ARGS)
 {
-	Vector	   *a = PG_GETARG_VECTOR_P(0);
-	Vector	   *b = PG_GETARG_VECTOR_P(1);
+	Vector *a = PG_GETARG_VECTOR_P(0);
+	Vector *b = PG_GETARG_VECTOR_P(1);
 
 	PG_RETURN_INT32(vector_cmp_internal(a, b));
 }
@@ -1121,18 +1086,17 @@ vector_cmp(PG_FUNCTION_ARGS)
  * Accumulate vectors
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_accum);
-Datum
-vector_accum(PG_FUNCTION_ARGS)
+Datum vector_accum(PG_FUNCTION_ARGS)
 {
-	ArrayType  *statearray = PG_GETARG_ARRAYTYPE_P(0);
-	Vector	   *newval = PG_GETARG_VECTOR_P(1);
-	float8	   *statevalues;
-	int16		dim;
-	bool		newarr;
-	float8		n;
-	Datum	   *statedatums;
-	float	   *x = newval->x;
-	ArrayType  *result;
+	ArrayType *statearray = PG_GETARG_ARRAYTYPE_P(0);
+	Vector *newval = PG_GETARG_VECTOR_P(1);
+	float8 *statevalues;
+	int16 dim;
+	bool newarr;
+	float8 n;
+	Datum *statedatums;
+	float *x = newval->x;
+	ArrayType *result;
 
 	/* Check array before using */
 	statevalues = CheckStateArray(statearray, "vector_accum");
@@ -1152,13 +1116,13 @@ vector_accum(PG_FUNCTION_ARGS)
 	if (newarr)
 	{
 		for (int i = 0; i < dim; i++)
-			statedatums[i + 1] = Float8GetDatum((double) x[i]);
+			statedatums[i + 1] = Float8GetDatum((double)x[i]);
 	}
 	else
 	{
 		for (int i = 0; i < dim; i++)
 		{
-			double		v = statevalues[i + 1] + x[i];
+			double v = statevalues[i + 1] + x[i];
 
 			/* Check for overflow */
 			if (isinf(v))
@@ -1182,20 +1146,19 @@ vector_accum(PG_FUNCTION_ARGS)
  * Combine vectors or half vectors (also used for halfvec_combine)
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_combine);
-Datum
-vector_combine(PG_FUNCTION_ARGS)
+Datum vector_combine(PG_FUNCTION_ARGS)
 {
 	/* Must also update parameters of halfvec_combine if modifying */
-	ArrayType  *statearray1 = PG_GETARG_ARRAYTYPE_P(0);
-	ArrayType  *statearray2 = PG_GETARG_ARRAYTYPE_P(1);
-	float8	   *statevalues1;
-	float8	   *statevalues2;
-	float8		n;
-	float8		n1;
-	float8		n2;
-	int16		dim;
-	Datum	   *statedatums;
-	ArrayType  *result;
+	ArrayType *statearray1 = PG_GETARG_ARRAYTYPE_P(0);
+	ArrayType *statearray2 = PG_GETARG_ARRAYTYPE_P(1);
+	float8 *statevalues1;
+	float8 *statevalues2;
+	float8 n;
+	float8 n1;
+	float8 n2;
+	int16 dim;
+	Datum *statedatums;
+	ArrayType *result;
 
 	/* Check arrays before using */
 	statevalues1 = CheckStateArray(statearray1, "vector_combine");
@@ -1228,7 +1191,7 @@ vector_combine(PG_FUNCTION_ARGS)
 		statedatums = CreateStateDatums(dim);
 		for (int i = 1; i <= dim; i++)
 		{
-			double		v = statevalues1[i] + statevalues2[i];
+			double v = statevalues1[i] + statevalues2[i];
 
 			/* Check for overflow */
 			if (isinf(v))
@@ -1253,14 +1216,13 @@ vector_combine(PG_FUNCTION_ARGS)
  * Average vectors
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(vector_avg);
-Datum
-vector_avg(PG_FUNCTION_ARGS)
+Datum vector_avg(PG_FUNCTION_ARGS)
 {
-	ArrayType  *statearray = PG_GETARG_ARRAYTYPE_P(0);
-	float8	   *statevalues;
-	float8		n;
-	uint16		dim;
-	Vector	   *result;
+	ArrayType *statearray = PG_GETARG_ARRAYTYPE_P(0);
+	float8 *statevalues;
+	float8 n;
+	uint16 dim;
+	Vector *result;
 
 	/* Check array before using */
 	statevalues = CheckStateArray(statearray, "vector_avg");
@@ -1287,14 +1249,13 @@ vector_avg(PG_FUNCTION_ARGS)
  * Convert sparse vector to dense vector
  */
 FUNCTION_PREFIX PG_FUNCTION_INFO_V1(sparsevec_to_vector);
-Datum
-sparsevec_to_vector(PG_FUNCTION_ARGS)
+Datum sparsevec_to_vector(PG_FUNCTION_ARGS)
 {
 	SparseVector *svec = PG_GETARG_SPARSEVEC_P(0);
-	int32		typmod = PG_GETARG_INT32(1);
-	Vector	   *result;
-	int			dim = svec->dim;
-	float	   *values = SPARSEVEC_VALUES(svec);
+	int32 typmod = PG_GETARG_INT32(1);
+	Vector *result;
+	int dim = svec->dim;
+	float *values = SPARSEVEC_VALUES(svec);
 
 	CheckDim(dim);
 	CheckExpectedDim(typmod, dim);
@@ -1306,84 +1267,12 @@ sparsevec_to_vector(PG_FUNCTION_ARGS)
 	PG_RETURN_POINTER(result);
 }
 
-PG_FUNCTION_INFO_V1(load_sift_learn);
-Datum load_sift_learn(PG_FUNCTION_ARGS)
+PG_FUNCTION_INFO_V1(hello_world);
+Datum hello_world(PG_FUNCTION_ARGS)
 {
-	const char *filename = text_to_cstring(PG_GETARG_TEXT_PP(0));
-	int fd = open(filename, O_RDONLY);
-	if (fd == -1)
-	{
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("无法打开文件 %s", filename)));
-	}
+	// 将 C 字符串转换为 PostgreSQL 的文本类型
+	text *result = cstring_to_text("Hello, World!");
 
-	// 读取向量总数（如果文件头包含此信息，否则需要循环读取）
-	// 假设文件格式为：总向量数（int32_t） + 各向量数据
-	int32_t nvecs;
-	if (read(fd, &nvecs, sizeof(int32_t)) != sizeof(int32_t))
-	{
-		close(fd);
-		ereport(ERROR,
-				(errcode(ERRCODE_DATA_EXCEPTION),
-				 errmsg("文件头读取失败")));
-	}
-
-	// 批量插入优化：每 1000 条提交一次事务
-	const int BATCH_SIZE = 1000;
-	int count = 0;
-	char query[1024];
-	snprintf(query, sizeof(query),
-			 "INSERT INTO sift_vectors(embedding) VALUES ($1::vector)");
-
-	SPI_connect();
-
-	for (int i = 0; i < nvecs; i++)
-	{
-		int32_t dim;
-		if (read(fd, &dim, sizeof(int32_t)) != sizeof(int32_t))
-		{
-			close(fd);
-			ereport(ERROR,
-					(errcode(ERRCODE_DATA_EXCEPTION),
-					 errmsg("维度读取失败")));
-		}
-
-		float *values = (float *)palloc(dim * sizeof(float));
-		if (read(fd, values, dim * sizeof(float)) != dim * sizeof(float))
-		{
-			close(fd);
-			ereport(ERROR,
-					(errcode(ERRCODE_DATA_EXCEPTION),
-					 errmsg("向量数据读取失败")));
-		}
-
-		// 构建 float[] 数组（pgvector 会自动转换为 vector 类型）
-		Datum *dvalues = (Datum *)palloc(dim * sizeof(Datum));
-		for (int j = 0; j < dim; j++)
-		{
-			dvalues[j] = Float4GetDatum(values[j]);
-		}
-		ArrayType *arr = construct_array(dvalues, dim, FLOAT4OID, sizeof(float4), true, 'i');
-
-		// 执行插入
-		Datum args[1] = {PointerGetDatum(arr)};
-		Oid argtypes[1] = {FLOAT4ARRAYOID};
-		SPI_execute_with_args(query, 1, argtypes, args, NULL, false, 0);
-
-		pfree(values);
-		pfree(dvalues);
-		pfree(arr);
-
-		// 批量提交
-		if (++count % BATCH_SIZE == 0)
-		{
-			SPI_finish();
-			SPI_connect();
-		}
-	}
-
-	SPI_finish();
-	close(fd);
-	PG_RETURN_INT32(nvecs);
+	// 返回文本
+	PG_RETURN_TEXT_P(result);
 }

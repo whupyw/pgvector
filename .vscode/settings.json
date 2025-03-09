@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "stdio.h": "c",
-        "functional": "c"
+        "functional": "c",
+        "assert.h": "c"
     }
 }

@@ -1,6 +1,12 @@
 -- complain if script is sourced in psql, rather than via CREATE EXTENSION
 \echo Use "ALTER EXTENSION vector UPDATE TO '0.8.0'" to load this file. \quit
 
+-- 创建或替换函数
+CREATE OR REPLACE FUNCTION hello_world()
+RETURNS TEXT  -- 返回文本
+AS 'MODULE_PATHNAME', 'hello_world'
+LANGUAGE C;
+
 CREATE FUNCTION array_to_sparsevec(integer[], integer, boolean) RETURNS sparsevec
 	AS 'MODULE_PATHNAME' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 

@@ -3,7 +3,6 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <omp.h>
 #include <assert.h>
 #include <pthread.h>
 #include "access/parallel.h"
