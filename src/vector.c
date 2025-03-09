@@ -1,6 +1,9 @@
 #include "postgres.h"
 
 #include <math.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 #include "bitutils.h"
 #include "bitvec.h"
@@ -13,6 +16,8 @@
 #include "ivfflat.h"
 #include "lib/stringinfo.h"
 #include "libpq/pqformat.h"
+#include "libpq/libpq.h"
+#include "executor/spi.h"
 #include "port.h"				/* for strtof() */
 #include "sparsevec.h"
 #include "utils/array.h"
@@ -1299,4 +1304,86 @@ sparsevec_to_vector(PG_FUNCTION_ARGS)
 		result->x[svec->indices[i]] = values[i];
 
 	PG_RETURN_POINTER(result);
+}
+
+PG_FUNCTION_INFO_V1(load_sift_learn);
+Datum load_sift_learn(PG_FUNCTION_ARGS)
+{
+	const char *filename = text_to_cstring(PG_GETARG_TEXT_PP(0));
+	int fd = open(filename, O_RDONLY);
+	if (fd == -1)
+	{
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("无法打开文件 %s", filename)));
+	}
+
+	// 读取向量总数（如果文件头包含此信息，否则需要循环读取）
+	// 假设文件格式为：总向量数（int32_t） + 各向量数据
+	int32_t nvecs;
+	if (read(fd, &nvecs, sizeof(int32_t)) != sizeof(int32_t))
+	{
+		close(fd);
+		ereport(ERROR,
+				(errcode(ERRCODE_DATA_EXCEPTION),
+				 errmsg("文件头读取失败")));
+	}
+
+	// 批量插入优化：每 1000 条提交一次事务
+	const int BATCH_SIZE = 1000;
+	int count = 0;
+	char query[1024];
+	snprintf(query, sizeof(query),
+			 "INSERT INTO sift_vectors(embedding) VALUES ($1::vector)");
+
+	SPI_connect();
+
+	for (int i = 0; i < nvecs; i++)
+	{
+		int32_t dim;
+		if (read(fd, &dim, sizeof(int32_t)) != sizeof(int32_t))
+		{
+			close(fd);
+			ereport(ERROR,
+					(errcode(ERRCODE_DATA_EXCEPTION),
+					 errmsg("维度读取失败")));
+		}
+
+		float *values = (float *)palloc(dim * sizeof(float));
+		if (read(fd, values, dim * sizeof(float)) != dim * sizeof(float))
+		{
+			close(fd);
+			ereport(ERROR,
+					(errcode(ERRCODE_DATA_EXCEPTION),
+					 errmsg("向量数据读取失败")));
+		}
+
+		// 构建 float[] 数组（pgvector 会自动转换为 vector 类型）
+		Datum *dvalues = (Datum *)palloc(dim * sizeof(Datum));
+		for (int j = 0; j < dim; j++)
+		{
+			dvalues[j] = Float4GetDatum(values[j]);
+		}
+		ArrayType *arr = construct_array(dvalues, dim, FLOAT4OID, sizeof(float4), true, 'i');
+
+		// 执行插入
+		Datum args[1] = {PointerGetDatum(arr)};
+		Oid argtypes[1] = {FLOAT4ARRAYOID};
+		SPI_execute_with_args(query, 1, argtypes, args, NULL, false, 0);
+
+		pfree(values);
+		pfree(dvalues);
+		pfree(arr);
+
+		// 批量提交
+		if (++count % BATCH_SIZE == 0)
+		{
+			SPI_finish();
+			SPI_connect();
+		}
+	}
+
+	SPI_finish();
+	close(fd);
+	PG_RETURN_INT32(nvecs);
 }

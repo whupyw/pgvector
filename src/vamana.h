@@ -38,6 +38,45 @@ VamanaPtrDeclare(VamanaNeighborArray, VamanaNeighborArrayRelptr, VamanaNeighborA
 VamanaPtrDeclare(VamanaNeighborArrayPtr, VamanaNeighborsRelptr, VamanaNeighborsPtr);
 VamanaPtrDeclare(char, DatumRelptr, DatumPtr);
 
+// 简化后的数据结构
+typedef struct
+{
+    size_t capacity;
+    size_t size;
+    uint32_t *data;
+} UIntArray;
+
+// 构建索引所需要的数据
+typedef struct
+{
+    // 数据集路径
+    char * data_path;
+
+    // 数据存储相关
+    size_t nd;             // 数据点数量
+    size_t num_frozen_pts; // 冻结点数量
+    size_t data_dim;       // 数据维度
+
+    
+
+    // 图结构存储
+    struct
+    {
+        UIntArray *neighbors; // 邻接列表数组
+    } graph_store;
+
+    // 标签管理
+    int enable_tags;
+
+    // 构建参数
+    uint32_t indexingRange;
+    uint32_t indexingQueueSize;
+    uint32_t indexingMaxC;
+
+    // 状态标志
+    int has_built;
+} VAMANAIndex;
+
 /* Vamana元素结构 */
 typedef struct VamanaElementData
 {
@@ -56,14 +95,21 @@ typedef VamanaElementData *VamanaElement;
 /* Vamana 构建状态 */
 typedef struct VamanaBuildState
 {
+
+    // 数据集路径
+    char *data_path;
+
+    // 构建参数
+    int R;        // 图的最大度数（max degree）
+    int L;        //  搜索列表大小,建议大于R
+    int B;        // 最终索引的RAM限制
+    int M;        // 用于构建索引的内存限制
+    int T;        // 线程数
+    double alpha; // alpha参数
+
     Relation heap;
     Relation index;
     IndexInfo *indexInfo;
-
-    // 构建参数
-    int r;        // 候选集大小
-    int l;        // 搜索列表大小
-    double alpha; // alpha参数
 
     // 内存管理
     MemoryContext tmpCtx;
@@ -84,7 +130,7 @@ typedef struct VamanaOptions
 } VamanaOptions;
 
 /* 函数声明 */
-void vamanaInit(void);
+void vamanainit(void);
 IndexBuildResult *vamanabuild(Relation heap, Relation index,
                               IndexInfo *indexInfo);
 void vamanabuildempty(Relation index);

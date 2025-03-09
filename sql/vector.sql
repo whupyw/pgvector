@@ -1,6 +1,12 @@
 -- complain if script is sourced in psql, rather than via CREATE EXTENSION
 \echo Use "CREATE EXTENSION vector" to load this file. \quit
 
+--加载数据集
+CREATE OR REPLACE FUNCTION load_sift_learn(filename TEXT)
+RETURNS INTEGER
+AS 'MODULE_PATHNAME', 'load_sift_learn'
+LANGUAGE C STRICT;
+
 -- vamana index
 -- Vamana索引访问方法
 CREATE FUNCTION vamanahandler(internal)
