@@ -4,8 +4,8 @@
 -- 创建或替换函数
 CREATE OR REPLACE FUNCTION hello_world()
 RETURNS TEXT  -- 返回文本
-AS 'MODULE_PATHNAME', 'hello_world'
-LANGUAGE C;
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT;
 
 -- vamana index
 -- Vamana索引访问方法
