@@ -1,54 +1,6 @@
 -- complain if script is sourced in psql, rather than via CREATE EXTENSION
 \echo Use "CREATE EXTENSION vector" to load this file. \quit
 
--- 创建或替换函数
-CREATE OR REPLACE FUNCTION hello_world()
-RETURNS TEXT  -- 返回文本
-AS 'MODULE_PATHNAME'
-LANGUAGE C STRICT;
-
--- vamana index
--- Vamana索引访问方法
-CREATE FUNCTION vamanahandler(internal)
-RETURNS index_am_handler
-AS 'MODULE_PATHNAME'
-LANGUAGE C;
-
--- 创建访问方法
-CREATE ACCESS METHOD vamana TYPE INDEX HANDLER vamanahandler;
-
-COMMENT ON ACCESS METHOD vamana IS 'Vamana approximate nearest neighbor index access method';
-
--- 为vector类型创建操作符类
-CREATE OPERATOR CLASS vector_vamana_l2_ops
-DEFAULT FOR TYPE vector USING vamana AS
-    OPERATOR    1    <-> (vector, vector) FOR ORDER BY float_ops,
-    FUNCTION    1    l2_distance(vector, vector),
-    FUNCTION    2    vector_norm(vector),
-    FUNCTION    3    l2_normalize(vector);
-    
-CREATE OPERATOR CLASS vector_vamana_ip_ops
-FOR TYPE vector USING vamana AS
-    OPERATOR    1    <#> (vector, vector) FOR ORDER BY float_ops,
-    FUNCTION    1    inner_product(vector, vector),
-    FUNCTION    2    vector_norm(vector);
-    
-CREATE OPERATOR CLASS vector_vamana_cosine_ops  
-FOR TYPE vector USING vamana AS
-    OPERATOR    1    <=> (vector, vector) FOR ORDER BY float_ops,
-    FUNCTION    1    cosine_distance(vector, vector),
-    FUNCTION    2    vector_norm(vector),
-    FUNCTION    3    l2_normalize(vector);
-
--- 创建配置参数
-CREATE FUNCTION vamana_options(internal)
-RETURNS void
-AS 'MODULE_PATHNAME'
-LANGUAGE C;
-
--- 示例用法
-COMMENT ON FUNCTION vamana_options(internal) IS 'Set Vamana index-specific options';
-
 -- vector type
 
 CREATE TYPE vector;
@@ -964,3 +916,55 @@ CREATE OPERATOR CLASS sparsevec_l1_ops
 	OPERATOR 1 <+> (sparsevec, sparsevec) FOR ORDER BY float_ops,
 	FUNCTION 1 l1_distance(sparsevec, sparsevec),
 	FUNCTION 3 hnsw_sparsevec_support(internal);
+
+
+-- 创建或替换函数
+CREATE OR REPLACE FUNCTION hello_world()
+RETURNS TEXT  -- 返回文本
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT;
+
+-- vamana index
+-- Vamana索引访问方法
+CREATE FUNCTION vamanahandler(internal)
+RETURNS index_am_handler
+AS 'MODULE_PATHNAME'
+LANGUAGE C;
+
+-- 创建访问方法
+CREATE ACCESS METHOD vamana TYPE INDEX HANDLER vamanahandler;
+
+COMMENT ON ACCESS METHOD vamana IS 'Vamana approximate nearest neighbor index access method';
+
+-- 为vector类型创建操作符类
+CREATE OPERATOR CLASS vector_vamana_l2_ops
+DEFAULT FOR TYPE vector USING vamana AS
+    OPERATOR    1    <-> (vector, vector) FOR ORDER BY float_ops,
+    FUNCTION    1    l2_distance(vector, vector),
+    FUNCTION    2    vector_norm(vector),
+    FUNCTION    3    l2_normalize(vector);
+    
+CREATE OPERATOR CLASS vector_vamana_ip_ops
+FOR TYPE vector USING vamana AS
+    OPERATOR    1    <#> (vector, vector) FOR ORDER BY float_ops,
+    FUNCTION    1    inner_product(vector, vector),
+    FUNCTION    2    vector_norm(vector);
+    
+CREATE OPERATOR CLASS vector_vamana_cosine_ops  
+FOR TYPE vector USING vamana AS
+    OPERATOR    1    <=> (vector, vector) FOR ORDER BY float_ops,
+    FUNCTION    1    cosine_distance(vector, vector),
+    FUNCTION    2    vector_norm(vector),
+    FUNCTION    3    l2_normalize(vector);
+
+CREATE OR REPLACE FUNCTION load_fbin_to_pgvector(filepath TEXT) RETURNS INTEGER
+    AS 'MODULE_PATHNAME'
+    LANGUAGE C STRICT;
+-- -- 创建配置参数
+-- CREATE FUNCTION vamana_options(internal)
+-- RETURNS void
+-- AS 'MODULE_PATHNAME'
+-- LANGUAGE C;
+
+-- -- 示例用法
+-- COMMENT ON FUNCTION vamana_options(internal) IS 'Set Vamana index-specific options';

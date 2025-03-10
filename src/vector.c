@@ -22,10 +22,13 @@
 #include "sparsevec.h"
 #include "utils/array.h"
 #include "utils/builtins.h"
+#include "utils/memutils.h"
 #include "utils/float.h"
 #include "utils/lsyscache.h"
 #include "utils/numeric.h"
 #include "vector.h"
+#include "storage/fd.h"
+#include "commands/tablecmds.h"
 
 #if PG_VERSION_NUM >= 160000
 #include "varatt.h"
@@ -1275,4 +1278,159 @@ Datum hello_world(PG_FUNCTION_ARGS)
 
 	// 返回文本
 	PG_RETURN_TEXT_P(result);
+}
+
+PG_FUNCTION_INFO_V1(load_fbin_to_pgvector);
+Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
+{
+	text *filepath_text = PG_GETARG_TEXT_PP(0);
+	char *filepath = text_to_cstring(filepath_text);
+	FILE *file;
+	int dim;
+	float *buffer;
+	int count = 0;
+	char create_table_sql[512];
+	StringInfoData batch_insert_sql;
+
+	elog(INFO, "Starting FBIN import from: %s", filepath);
+
+	/* 打开文件并检查有效性 */
+	if ((file = fopen(filepath, "rb")) == NULL)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("Cannot open file: %s", filepath)));
+
+	/* 读取向量维度并验证 */
+	if (fread(&dim, sizeof(int), 1, file) != 1)
+	{
+		fclose(file);
+		ereport(ERROR,
+				(errcode(ERRCODE_DATA_EXCEPTION),
+				 errmsg("Failed to read dimension header")));
+	}
+	elog(INFO, "Detected vector dimension: %d", dim);
+
+	if (dim <= 0)
+	{
+		fclose(file);
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("Invalid vector dimension: %d", dim)));
+	}
+
+	/* 检查pgvector扩展 */
+	SPI_connect();
+	if (SPI_execute("SELECT 1 FROM pg_type WHERE typname = 'vector'", true, 0) != SPI_OK_SELECT)
+	{
+		SPI_finish();
+		fclose(file);
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("pgvector extension not installed")));
+	}
+	if (SPI_processed == 0)
+	{
+		SPI_finish();
+		fclose(file);
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("vector type not found")));
+	}
+
+	/* 创建表（如果不存在） */
+	snprintf(create_table_sql, sizeof(create_table_sql),
+			 "CREATE TABLE IF NOT EXISTS vectors ("
+			 "id SERIAL PRIMARY KEY,"
+			 "embedding vector(%d))",
+			 dim);
+
+	if (SPI_execute(create_table_sql, false, 0) != SPI_OK_UTILITY)
+	{
+		SPI_finish();
+		fclose(file);
+		ereport(ERROR,
+				(errcode(ERRCODE_DATA_EXCEPTION),
+				 errmsg("Table creation failed: %s", SPI_result_code_string(SPI_result))));
+	}
+
+	/* 准备批量插入 */
+	initStringInfo(&batch_insert_sql);
+	buffer = (float *)palloc(dim * sizeof(float));
+
+	/* 读取数据并构建SQL */
+	while (!feof(file))
+	{
+		size_t n = fread(buffer, sizeof(float), dim, file);
+		if (n == 0)
+			break; // 正常结束
+
+		if (n != dim)
+		{ // 不完整数据
+			pfree(buffer);
+			SPI_finish();
+			fclose(file);
+			ereport(ERROR,
+					(errcode(ERRCODE_DATA_CORRUPTED),
+					 errmsg("Incomplete vector data at position %d", count)));
+		}
+
+		/* 构建INSERT VALUES子句 */
+		if (count % 1000 == 0)
+		{
+			resetStringInfo(&batch_insert_sql);
+			appendStringInfo(&batch_insert_sql, "INSERT INTO vectors (embedding) VALUES ");
+		}
+		else
+		{
+			appendStringInfoString(&batch_insert_sql, ", ");
+		}
+
+		// 安全格式化浮点数组
+		appendStringInfoString(&batch_insert_sql, "('[");
+		for (int i = 0; i < dim; i++)
+		{
+			if (i > 0)
+				appendStringInfoString(&batch_insert_sql, ", ");
+			appendStringInfo(&batch_insert_sql, "%.9g", buffer[i]);
+		}
+		appendStringInfoString(&batch_insert_sql, "]'::vector)");
+
+		/* 每1000条提交一次 */
+		if (++count % 1000 == 0)
+		{
+			elog(DEBUG1, "Inserting batch: %d vectors", count);
+			if (SPI_execute(batch_insert_sql.data, false, 0) != SPI_OK_INSERT)
+			{
+				pfree(buffer);
+				SPI_finish();
+				fclose(file);
+				ereport(ERROR,
+						(errcode(ERRCODE_DATA_EXCEPTION),
+						 errmsg("Insert failed: %s", SPI_result_code_string(SPI_result))));
+			}
+		}
+	}
+
+	/* 提交最后一批 */
+	if (count % 1000 != 0)
+	{
+		elog(DEBUG1, "Inserting final batch: %d vectors", count % 1000);
+		if (SPI_execute(batch_insert_sql.data, false, 0) != SPI_OK_INSERT)
+		{
+			pfree(buffer);
+			SPI_finish();
+			fclose(file);
+			ereport(ERROR,
+					(errcode(ERRCODE_DATA_EXCEPTION),
+					 errmsg("Final insert failed: %s", SPI_result_code_string(SPI_result))));
+		}
+	}
+
+	/* 清理资源 */
+	pfree(buffer);
+	SPI_finish();
+	fclose(file);
+
+	elog(INFO, "Successfully imported %d vectors", count);
+	PG_RETURN_INT32(count);
 }
