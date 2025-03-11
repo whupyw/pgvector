@@ -1357,12 +1357,26 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 	initStringInfo(&single_insert_sql);
 	buffer = (float *)palloc(dim * sizeof(float));
 
+	// 代码使用 while (!feof(file)) 循环读取数据，但 feof() 在读取失败后才会返回 true。
+	// 这可能导致最后一次循环尝试读取不存在的数据，触发 n != dim 错误。
+	// 尤其在文件大小刚好为整数个向量时，最后一次循环会多执行一次，导致错误。
+	// 改成使用 feof() 作为循环条件，可以避免这个问题。
 	/* 读取数据并逐条插入 */
-	while (!feof(file))
+	while (true)
 	{
 		size_t n = fread(buffer, sizeof(float), dim, file);
 		if (n == 0)
-			break;
+		{
+			if (feof(file))
+				break; // 正常结束
+			else
+			{
+				// 处理读取错误
+				ereport(ERROR,
+						(errcode(ERRCODE_DATA_CORRUPTED),
+						 errmsg("Reading Incomplete vector data at position %d", count)));
+			}
+		}
 
 		if (n != dim)
 		{
@@ -1376,7 +1390,7 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 
 		/* 构建单条INSERT语句 */
 		resetStringInfo(&single_insert_sql); // 清空缓冲区
-		elog(INFO, "检查缓冲区：%s", single_insert_sql.data);
+		//elog(INFO, "检查缓冲区：%s", single_insert_sql.data);
 		appendStringInfoString(&single_insert_sql, "INSERT INTO vectors (embedding) VALUES ('[");
 
 		// 构建向量字符串
