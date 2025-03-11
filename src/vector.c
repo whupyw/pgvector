@@ -1286,7 +1286,7 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 	text *filepath_text = PG_GETARG_TEXT_PP(0);
 	char *filepath = text_to_cstring(filepath_text);
 	FILE *file;
-	int dim;
+	int dim = 128;
 	float *buffer;
 	int count = 0;
 	char create_table_sql[512];
@@ -1302,23 +1302,23 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 				(errcode_for_file_access(),
 				 errmsg("Cannot open file: %s", filepath)));
 
-	/* 读取向量维度并验证 */
-	if (fread(&dim, sizeof(int), 1, file) != 1)
-	{
-		fclose(file);
-		ereport(ERROR,
-				(errcode(ERRCODE_DATA_EXCEPTION),
-				 errmsg("Failed to read dimension header")));
-	}
-	elog(INFO, "Detected vector dimension: %d", dim);
+	// /* 读取向量维度并验证 */
+	// if (fread(&dim, sizeof(int), 1, file) != 1)
+	// {
+	// 	fclose(file);
+	// 	ereport(ERROR,
+	// 			(errcode(ERRCODE_DATA_EXCEPTION),
+	// 			 errmsg("Failed to read dimension header")));
+	// }
+	// elog(INFO, "Detected vector dimension: %d", dim);
 
-	if (dim <= 0)
-	{
-		fclose(file);
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-				 errmsg("Invalid vector dimension: %d", dim)));
-	}
+	// if (dim <= 0)
+	// {
+	// 	fclose(file);
+	// 	ereport(ERROR,
+	// 			(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+	// 			 errmsg("Invalid vector dimension: %d", dim)));
+	// }
 
 	/* 检查pgvector扩展 */
 	SPI_connect();
@@ -1343,8 +1343,7 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 	snprintf(create_table_sql, sizeof(create_table_sql),
 			 "CREATE TABLE IF NOT EXISTS vectors ("
 			 "id SERIAL PRIMARY KEY,"
-			 "embedding vector(%d))",
-			 dim);
+			 "embedding vector(128))");
 
 	if (SPI_execute(create_table_sql, false, 0) != SPI_OK_UTILITY)
 	{
@@ -1381,14 +1380,14 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 		}
 
 		// 转换字节序（fvecs 是小端序）
-		current_dim = ntohl(current_dim); // 若文件是大端序需保留此行
+		//current_dim = ntohl(current_dim); // 若文件是大端序需保留此行
 		if(beginning)
 		{
 			beginning = false;
 			elog(INFO, "Detected vector dimension: %d", current_dim);
 		}
 
-		if (current_dim != dim)
+		if (current_dim != 128)
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_DATA_CORRUPTED),
