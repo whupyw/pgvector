@@ -1290,7 +1290,7 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 	float *buffer;
 	int count = 0;
 	char create_table_sql[512];
-	StringInfoData batch_insert_sql;
+	StringInfoData single_insert_sql; // 改为单条插入语句缓冲区
 
 	elog(INFO, "Starting FBIN import from: %s", filepath);
 
@@ -1353,19 +1353,19 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 				 errmsg("Table creation failed: %s", SPI_result_code_string(SPI_result))));
 	}
 
-	/* 准备批量插入 */
-	initStringInfo(&batch_insert_sql);
+	/* 准备单条插入语句模板 */
+	initStringInfo(&single_insert_sql);
 	buffer = (float *)palloc(dim * sizeof(float));
 
-	/* 读取数据并构建SQL */
+	/* 读取数据并逐条插入 */
 	while (!feof(file))
 	{
 		size_t n = fread(buffer, sizeof(float), dim, file);
 		if (n == 0)
-			break; // 正常结束
+			break;
 
 		if (n != dim)
-		{ // 不完整数据
+		{
 			pfree(buffer);
 			SPI_finish();
 			fclose(file);
@@ -1374,60 +1374,44 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 					 errmsg("Incomplete vector data at position %d", count)));
 		}
 
-		/* 构建INSERT VALUES子句 */
-		if (count % 1000 == 0)
-		{
-			resetStringInfo(&batch_insert_sql);
-			appendStringInfo(&batch_insert_sql, "INSERT INTO vectors (embedding) VALUES ");
-		}
-		else
-		{
-			appendStringInfoString(&batch_insert_sql, ", ");
-		}
+		/* 构建单条INSERT语句 */
+		resetStringInfo(&single_insert_sql); // 清空缓冲区
+		elog(INFO, "检查缓冲区：%s", single_insert_sql.data);
+		appendStringInfoString(&single_insert_sql, "INSERT INTO vectors (embedding) VALUES ('[");
 
-		// 安全格式化浮点数组
-		appendStringInfoString(&batch_insert_sql, "('[");
+		// 构建向量字符串
 		for (int i = 0; i < dim; i++)
 		{
 			if (i > 0)
-				appendStringInfoString(&batch_insert_sql, ", ");
-			appendStringInfo(&batch_insert_sql, "%.9g", buffer[i]);
+				appendStringInfoString(&single_insert_sql, ", ");
+			appendStringInfo(&single_insert_sql, "%.9g", buffer[i]);
 		}
-		appendStringInfoString(&batch_insert_sql, "]'::vector)");
 
-		/* 每1000条提交一次 */
-		if (++count % 1000 == 0)
-		{
-			elog(DEBUG1, "Inserting batch: %d vectors", count);
-			if (SPI_execute(batch_insert_sql.data, false, 0) != SPI_OK_INSERT)
-			{
-				pfree(buffer);
-				SPI_finish();
-				fclose(file);
-				ereport(ERROR,
-						(errcode(ERRCODE_DATA_EXCEPTION),
-						 errmsg("Insert failed: %s", SPI_result_code_string(SPI_result))));
-			}
-		}
-	}
+		appendStringInfoString(&single_insert_sql, "]'::vector)");
 
-	/* 提交最后一批 */
-	if (count % 1000 != 0)
-	{
-		elog(DEBUG1, "Inserting final batch: %d vectors", count % 1000);
-		if (SPI_execute(batch_insert_sql.data, false, 0) != SPI_OK_INSERT)
+		/* 执行单条插入 */
+		if (SPI_execute(single_insert_sql.data, false, 0) != SPI_OK_INSERT)
 		{
 			pfree(buffer);
 			SPI_finish();
 			fclose(file);
 			ereport(ERROR,
 					(errcode(ERRCODE_DATA_EXCEPTION),
-					 errmsg("Final insert failed: %s", SPI_result_code_string(SPI_result))));
+					 errmsg("Insert failed at position %d: %s", count, SPI_result_code_string(SPI_result))));
+		}
+
+		count++;
+
+		/* 可选：每插入N条打印进度 */
+		if (count % 100 == 0)
+		{
+			elog(INFO, "Inserted %d records", count);
 		}
 	}
 
 	/* 清理资源 */
 	pfree(buffer);
+	pfree(single_insert_sql.data); // 释放语句缓冲区
 	SPI_finish();
 	fclose(file);
 
