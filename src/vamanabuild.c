@@ -90,7 +90,6 @@ static void build_graph_links(VAMANAIndex *index)
 static void
 InsertElementInMemory(VamanaBuildState *buildstate, VamanaElement element)
 {
-
 }
 
 /*
@@ -177,13 +176,36 @@ BuildCallback(Relation index, ItemPointer tid, Datum *values,
 }
 
 /*
- * Build graph
+ * 做构建前的准备
  */
 static void
-BuildGraph(VamanaBuildState *buildstate, ForkNumber forkNum)
+InitBuildState(VamanaBuildState *buildstate, Relation heap, Relation index, IndexInfo *indexInfo, ForkNumber forkNum)
 {
-    //解析参数
+    buildstate->heap = heap;
+    buildstate->index = index;
+    buildstate->indexInfo = indexInfo;
+    
+    buildstate->dimensions = 128;
+    buildstate->R = 32;
+    buildstate->L = 64;
+    buildstate->B = 1024;
+    buildstate->M = 1024;
+    buildstate->T = 1;
 
+    buildstate->reltuples = 0;
+    buildstate->indtuples = 0;
+
+
+    // TODO 检查参数
+
+    
+}
+/*
+ * Build graph
+ */
+static void BuildGraph(VamanaBuildState *buildstate, ForkNumber forkNum)
+{
+    // 解析参数
 }
 
 /*
@@ -211,7 +233,7 @@ BuildIndex(Relation heap, Relation index, IndexInfo *indexInfo,
     SeedRandom(42);
 #endif
 
-    // InitBuildState(buildstate, heap, index, indexInfo, forkNum);
+    InitBuildState(buildstate, heap, index, indexInfo, forkNum);
 
     // BuildGraph(buildstate, forkNum);
 

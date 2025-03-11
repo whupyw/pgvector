@@ -92,14 +92,21 @@ typedef struct VamanaElementData
 
 typedef VamanaElementData *VamanaElement;
 
+typedef struct VamanaAllocator
+{
+    void *(*alloc)(Size size, void *state);
+    void *state;
+} VamanaAllocator;
+
 /* Vamana 构建状态 */
 typedef struct VamanaBuildState
 {
 
-    // 数据集路径
-    char *data_path;
+    // // 数据集路径
+    // char *data_path;
 
     // 构建参数
+    int dimensions;
     int R;        // 图的最大度数（max degree）
     int L;        //  搜索列表大小,建议大于R
     int B;        // 最终索引的RAM限制
@@ -114,6 +121,7 @@ typedef struct VamanaBuildState
     // 内存管理
     MemoryContext tmpCtx;
     MemoryContext graphCtx;
+    VamanaAllocator allocator;
 
     // 并行构建支持
     bool isParallel;
