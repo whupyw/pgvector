@@ -1290,6 +1290,8 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 	float *buffer;
 	int count = 0;
 	char create_table_sql[512];
+	int current_dim;
+	bool beginning = true;
 	StringInfoData single_insert_sql; // 改为单条插入语句缓冲区
 
 	elog(INFO, "Starting FBIN import from: %s", filepath);
@@ -1364,8 +1366,8 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 	/* 读取数据并逐条插入 */
 	while (true)
 	{
-		size_t n = fread(buffer, sizeof(float), dim, file);
-		if (n == 0)
+		size_t n_header = fread(&current_dim, sizeof(int), 1, file);
+		if (n_header == 0)
 		{
 			if (feof(file))
 				break; // 正常结束
@@ -1374,12 +1376,30 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 				// 处理读取错误
 				ereport(ERROR,
 						(errcode(ERRCODE_DATA_CORRUPTED),
-						 errmsg("Reading Incomplete vector data at position %d", count)));
+						 errmsg("Reading Incomplete vector data header at position %d", count)));
 			}
 		}
 
+		// 转换字节序（fvecs 是小端序）
+		current_dim = ntohl(current_dim); // 若文件是大端序需保留此行
+		if(beginning)
+		{
+			beginning = false;
+			elog(INFO, "Detected vector dimension: %d", current_dim);
+		}
+
+		if (current_dim != dim)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_DATA_CORRUPTED),
+					 errmsg("Dimension mismatch: expected %d, got %d at position %d", dim, current_dim, count)));
+		}
+
+		// 读取向量数据
+		size_t n = fread(buffer, sizeof(float), dim, file);
 		if (n != dim)
 		{
+			elog(INFO, "n = %ld, dim = %d", n, dim);
 			pfree(buffer);
 			SPI_finish();
 			fclose(file);
@@ -1417,7 +1437,7 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 		count++;
 
 		/* 可选：每插入N条打印进度 */
-		if (count % 100 == 0)
+		if (count % 1000 == 0)
 		{
 			elog(INFO, "Inserted %d records", count);
 		}
