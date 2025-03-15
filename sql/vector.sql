@@ -968,3 +968,6 @@ CREATE OR REPLACE FUNCTION load_fbin_to_pgvector(filepath TEXT) RETURNS INTEGER
 
 -- -- 示例用法
 -- COMMENT ON FUNCTION vamana_options(internal) IS 'Set Vamana index-specific options';
+CREATE OR REPLACE FUNCTION test_vamana() RETURNS TEXT
+    AS 'MODULE_PATHNAME'
+    LANGUAGE C STRICT;

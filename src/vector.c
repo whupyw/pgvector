@@ -30,6 +30,8 @@
 #include "storage/fd.h"
 #include "commands/tablecmds.h"
 
+#include "diskann.h"
+
 #if PG_VERSION_NUM >= 160000
 #include "varatt.h"
 #endif
@@ -1450,4 +1452,19 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 
 	elog(INFO, "Successfully imported %d vectors", count);
 	PG_RETURN_INT32(count);
+}
+
+PG_FUNCTION_INFO_V1(test_vamana);
+Datum test_vamana(PG_FUNCTION_ARGS)
+{
+	elog(INFO, "Hello, Vamana!");
+	//char indexBuildParameters[] = "32 0.03 1 12 12 12 12 12";
+	//int a = build_disk_index("", "",indexBuildParameters, DISKANN_L2, 5, "");
+	size_t npt_val = 5;
+	size_t dim_val = 5;
+	size_t slice_size = 0;
+	float *storage = (float *)palloc(npt_val * dim_val * sizeof(float));
+	const float *aa = load_vector_data("vectors", "embedding", &npt_val, &dim_val);
+	gen_random_slice(aa, npt_val, dim_val, 0.01, &storage, &slice_size);
+	PG_RETURN_NULL();
 }
