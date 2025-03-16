@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug C Program",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/main", // 可执行文件路径
+            "args": [], // 命令行参数
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false, // 使用 VS Code 内置终端
+            "MIMode": "gdb", // 调试器类型
+            "preLaunchTask": "build", // 必须与 tasks.json 的 "label" 一致
+            "miDebuggerPath": "gdb" // GDB 路径（通常系统已配置）
+        }
+    ]
+}

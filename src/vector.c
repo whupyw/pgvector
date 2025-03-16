@@ -1382,8 +1382,8 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 		}
 
 		// 转换字节序（fvecs 是小端序）
-		//current_dim = ntohl(current_dim); // 若文件是大端序需保留此行
-		if(beginning)
+		// current_dim = ntohl(current_dim); // 若文件是大端序需保留此行
+		if (beginning)
 		{
 			beginning = false;
 			elog(INFO, "Detected vector dimension: %d", current_dim);
@@ -1411,7 +1411,7 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 
 		/* 构建单条INSERT语句 */
 		resetStringInfo(&single_insert_sql); // 清空缓冲区
-		//elog(INFO, "检查缓冲区：%s", single_insert_sql.data);
+		// elog(INFO, "检查缓冲区：%s", single_insert_sql.data);
 		appendStringInfoString(&single_insert_sql, "INSERT INTO vectors (embedding) VALUES ('[");
 
 		// 构建向量字符串
@@ -1458,13 +1458,24 @@ PG_FUNCTION_INFO_V1(test_vamana);
 Datum test_vamana(PG_FUNCTION_ARGS)
 {
 	elog(INFO, "Hello, Vamana!");
-	//char indexBuildParameters[] = "32 0.03 1 12 12 12 12 12";
-	//int a = build_disk_index("", "",indexBuildParameters, DISKANN_L2, 5, "");
 	size_t npt_val = 5;
+	// 维度
 	size_t dim_val = 5;
+	// 切片大小
 	size_t slice_size = 0;
-	float *storage = (float *)palloc(npt_val * dim_val * sizeof(float));
+
+	// 加载向量数据
+	float *storage = NULL;
 	const float *aa = load_vector_data("vectors", "embedding", &npt_val, &dim_val);
-	gen_random_slice(aa, npt_val, dim_val, 0.01, &storage, &slice_size);
+	// gen_random_slice(aa, npt_val, dim_val, 0.01, &storage, &slice_size);
+	const char *dataFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_learn.fbin";
+	const char *indexFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test";
+	// L=50,R=64,C=200
+	const char *buildParams = "50 64 200 1 1";
+	enum diskann_metric_t metric = DISKANN_L2; // 假设使用 L2 作为度量方式
+	int use_opq = false;			   // 启用 OPQ
+	const char *codebookPrefix = "/path/to/codebook";
+
+	int status = build_disk_index(dataFile, indexFile, buildParams, metric, use_opq, codebookPrefix);
 	PG_RETURN_NULL();
 }

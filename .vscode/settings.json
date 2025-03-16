@@ -5,6 +5,12 @@
         "assert.h": "c",
         "time.h": "c",
         "diskann.h": "c",
-        "vector.h": "c"
+        "vector.h": "c",
+        "math.h": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "errno.h": "c",
+        
     }
 }
