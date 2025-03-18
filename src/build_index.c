@@ -476,14 +476,15 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
 
     elog(INFO, "Check if file exists: %s", pq_pivots_path);
     /* Check if file exists */
-    if (access(pq_pivots_path, F_OK) != -1)
+    if (!file_exists(pq_pivots_path))
     {
-        elog(LOG, "PQ pivot file exists. Not generating again");
+        elog(INFO, "PQ pivot file exists. Not generating again");
         MemoryContextSwitchTo(oldcontext);
         MemoryContextDelete(context);
         return -1;
     }
 
+    elog(INFO, "Generating PQ pivots");
     /* Zero-mean normalization */
     float *centroid = (float *)palloc0(dim * sizeof(float));
     if (make_zero_mean)
@@ -766,6 +767,7 @@ void generate_quantized_data(
 // 辅助函数实现
 bool file_exists(const char *path)
 {
+    elog(INFO, "file_exists:%s", path);
     struct stat buffer;
 #if defined(_WIN32)
     return _stat(path, &buffer) == 0; // Windows 使用 _stat
