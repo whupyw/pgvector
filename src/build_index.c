@@ -24,6 +24,60 @@
 // 函数声明
 bool file_exists(const char *path);
 
+size_t load_pq_pivots(const char *filename, void **data, size_t *num_centers, size_t *ndims, void **centroid, size_t **chunk_offsets, uint32_t *num_chunks)
+{
+    elog(INFO, "Reading binary file: %s", filename);
+    int fd = OpenTransientFile(filename, O_RDONLY);
+    if (fd < 0)
+    {
+        elog(ERROR, "Could not open file %s for reading", filename);
+        return 0;
+    }
+
+    uint32_t num_centers_i32, ndims_i32;
+    size_t expected_bytes = 0, bytes_read = 0;
+
+    if (read(fd, &num_centers_i32, sizeof(uint32_t)) != sizeof(uint32_t) ||
+        read(fd, &ndims_i32, sizeof(uint32_t)) != sizeof(uint32_t))
+    {
+        elog(ERROR, "Failed to read num_centers or ndims from file %s", filename);
+        CloseTransientFile(fd);
+        return 0;
+    }
+    bytes_read += 2 * sizeof(uint32_t);
+
+    *num_centers = (size_t)num_centers_i32;
+    *ndims = (size_t)ndims_i32;
+
+    *data = palloc(*num_centers * *ndims * sizeof(float));
+    *centroid = palloc(*ndims * sizeof(float));
+
+    expected_bytes = *num_centers * *ndims * sizeof(float) + *ndims * sizeof(float);
+    if (read(fd, *data, *num_centers * *ndims * sizeof(float)) != (ssize_t)(*num_centers * *ndims * sizeof(float)) ||
+        read(fd, *centroid, *ndims * sizeof(float)) != (ssize_t)(*ndims * sizeof(float)))
+    {
+        elog(ERROR, "Failed to read data or centroid from file %s", filename);
+        CloseTransientFile(fd);
+        return 0;
+    }
+    bytes_read += expected_bytes;
+
+    //*num_chunks = *num_centers; // 这里假设 num_chunks = num_centers
+    *chunk_offsets = palloc((*num_chunks + 1) * sizeof(size_t));
+    expected_bytes = (*num_chunks + 1) * sizeof(size_t);
+    if (read(fd, *chunk_offsets, expected_bytes) != (ssize_t)expected_bytes)
+    {
+        elog(ERROR, "Failed to read chunk_offsets from file %s", filename);
+        CloseTransientFile(fd);
+        return 0;
+    }
+    bytes_read += expected_bytes;
+
+    CloseTransientFile(fd);
+    elog(LOG, "Finished reading binary file: %s, total bytes read: %zu", filename, bytes_read);
+    return bytes_read;
+}
+
 void compute_closest_centers(const float *data, size_t num_points, size_t dim,
                              const float *centers, size_t num_centers, uint32_t *closest_center)
 {
@@ -123,7 +177,7 @@ void load_bin_float(const char *bin_file, float **data, size_t *npts, size_t *di
     fclose(fp);
 }
 
-void load_bin_uint32(const char *bin_file, uint32_t **data, size_t *npts, size_t *dim, size_t offset)
+void load_bin_uint32(const char *bin_file, uint32_t **data, size_t *num_centers, size_t *dim, size_t offset)
 {
     FILE *fp = fopen(bin_file, "rb");
     if (!fp)
@@ -139,14 +193,14 @@ void load_bin_uint32(const char *bin_file, uint32_t **data, size_t *npts, size_t
         exit(EXIT_FAILURE);
     }
 
-    if (fread(npts, sizeof(size_t), 1, fp) != 1 || fread(dim, sizeof(size_t), 1, fp) != 1)
+    if (fread(num_centers, sizeof(uint32_t), 1, fp) != 1 || fread(dim, sizeof(uint32_t), 1, fp) != 1)
     {
         fprintf(stderr, "Error reading metadata from file %s\n", bin_file);
         fclose(fp);
         exit(EXIT_FAILURE);
     }
 
-    *data = (uint32_t *)malloc((*npts) * (*dim) * sizeof(uint32_t));
+    *data = (float *)malloc((*num_centers) * (*dim) * sizeof(uint32_t));
     if (!*data)
     {
         fprintf(stderr, "Memory allocation failed\n");
@@ -154,7 +208,7 @@ void load_bin_uint32(const char *bin_file, uint32_t **data, size_t *npts, size_t
         exit(EXIT_FAILURE);
     }
 
-    if (fread(*data, sizeof(uint32_t), (*npts) * (*dim), fp) != (*npts) * (*dim))
+    if (fread(*data, sizeof(float), (*num_centers) * (*dim), fp) != (*num_centers) * (*dim))
     {
         fprintf(stderr, "Error reading data from file %s\n", bin_file);
         free(*data);
@@ -165,9 +219,9 @@ void load_bin_uint32(const char *bin_file, uint32_t **data, size_t *npts, size_t
     fclose(fp);
 }
 
-size_t save_pq_pivots(const char *filename, void *data, size_t npts, size_t ndims, void *centroid, size_t *chunk_offsets, size_t num_chunks)
+size_t save_pq_pivots(const char *filename, void *data, size_t num_centers, size_t ndims, void *centroid, size_t *chunk_offsets, size_t num_chunks)
 {
-    elog(INFO, "Writing binary file: %s, npts: %zu, ndims: %zu", filename, npts, ndims);
+    elog(INFO, "Writing binary file: %s, num_centers: %zu, ndims: %zu", filename, num_centers, ndims);
     int fd = OpenTransientFile(filename, O_WRONLY | O_CREAT | O_TRUNC);
     if (fd < 0)
     {
@@ -175,12 +229,12 @@ size_t save_pq_pivots(const char *filename, void *data, size_t npts, size_t ndim
         return 0;
     }
 
-    uint32_t npts_i32 = (uint32_t)npts, ndims_i32 = (uint32_t)ndims;
+    uint32_t num_centers_i32 = (uint32_t)num_centers, ndims_i32 = (uint32_t)ndims;
     size_t bytes_written = 0;
 
-    bytes_written += write(fd, &npts_i32, sizeof(uint32_t));
+    bytes_written += write(fd, &num_centers_i32, sizeof(uint32_t));
     bytes_written += write(fd, &ndims_i32, sizeof(uint32_t));
-    bytes_written += write(fd, data, npts * ndims * sizeof(float));
+    bytes_written += write(fd, data, num_centers * ndims * sizeof(float));
     bytes_written += write(fd, centroid, ndims * sizeof(float));
     bytes_written += write(fd, chunk_offsets, (num_chunks + 1) * sizeof(size_t));
 
@@ -326,7 +380,7 @@ const float *load_vector_data(const char *table_name, const char *column_name, s
     }
 
     char query[256];
-    snprintf(query, sizeof(query), "SELECT %s FROM %s where id < 1000", column_name, table_name);
+    snprintf(query, sizeof(query), "SELECT %s FROM %s", column_name, table_name);
     int ret = SPI_exec(query, 0);
     if (ret != SPI_OK_SELECT)
     {
@@ -385,8 +439,8 @@ const float *load_vector_data(const char *table_name, const char *column_name, s
 
         Vector *vec = (Vector *)DatumGetPointer(val);
         float *vec_data = vec->x;
-        //elog(INFO,"loop:i = %ld", i);
-        // 复制数据到 inputdata
+        // elog(INFO,"loop:i = %ld", i);
+        //  复制数据到 inputdata
         memcpy(inputdata + i * (*ndims), vec_data, (*ndims) * sizeof(float));
     }
 
@@ -552,8 +606,8 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
     }
 
     /* Save binary data (to be implemented using PostgreSQL file APIs) */
-    save_pq_pivots(pq_pivots_path, full_pivot_data, num_centers, dim, centroid, chunk_offsets, num_pq_chunks);
-
+    int ret = save_pq_pivots(pq_pivots_path, full_pivot_data, num_centers, dim, centroid, chunk_offsets, num_pq_chunks);
+    elog(INFO, "save_pq_pivots ret = %d", ret);
     pfree(train_data_copy);
     pfree(full_pivot_data);
     pfree(centroid);
@@ -585,7 +639,7 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
     float *full_pivot_data;
     float *rotmat_tr;
     float *centroid;
-    uint32_t *chunk_offsets;
+    size_t *chunk_offsets;
     size_t nr, nc;
     size_t *file_offset_data;
     FILE *compressed_file_writer;
@@ -628,18 +682,25 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
     }
 
     /* Load pivot data */
+    int ret = load_pq_pivots(pq_pivots_path, &full_pivot_data, &num_centers, &dim, &centroid, &chunk_offsets, &num_pq_chunks);
+    elog(INFO, "load_pq_pivots ret = %d", ret);
+    if(ret == 0)
+    {
+        elog(ERROR, "Error loading PQ pivot data from file: %s", pq_pivots_path);
+        return -1;
+    }
     // nr npts
     // nc dims
-    load_bin_uint32(pq_pivots_path, &file_offset_data, &nr, &nc,0);
+    // load_bin_uint32(pq_pivots_path, &file_offset_data, &nr, &nc,0);
     // if (true)
     // {
     //     elog(INFO, "Error reading pq_pivots file: %s", pq_pivots_path);
     //     //return -1;
     // }
 
-    load_bin_float(pq_pivots_path, &full_pivot_data, &nr, &nc, file_offset_data[0]);
-    load_bin_float(pq_pivots_path, &centroid, &nr, &nc, file_offset_data[1]);
-    load_bin_uint32(pq_pivots_path, &chunk_offsets, &nr, &nc, file_offset_data[2]);
+    // load_bin_float(pq_pivots_path, &full_pivot_data, &nr, &nc, file_offset_data[0]);
+    // load_bin_float(pq_pivots_path, &centroid, &nr, &nc, file_offset_data[1]);
+    // load_bin_uint32(pq_pivots_path, &chunk_offsets, &nr, &nc, file_offset_data[2]);
 
     if (use_opq)
     {
@@ -714,7 +775,7 @@ void generate_quantized_data(
     size_t train_size;
     size_t train_dim = 128;
     float *train_data = NULL;
-    size_t npts = npt;  
+    size_t npts = npt;
     size_t ndims = dim; // 128维向量
 
     float *inputdata = (float *)palloc(npts * ndims * sizeof(float));
@@ -785,7 +846,7 @@ void create_disk_layout()
 
 int build_disk_index(const char *dataFilePath, const char *indexFilePath,
                      const char *indexBuildParameters, enum diskann_metric_t compareMetric,
-                     int use_opq, const char *codebook_prefix,size_t npt,size_t dim)
+                     int use_opq, const char *codebook_prefix, size_t npt, size_t dim)
 {
 
     /* 变量定义部分 */
@@ -804,10 +865,12 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     time_t start = time(NULL);
     time_t end = time(NULL);
     // char *pq_pivots_path = indexFilePath + "_pq_pivots.bin";
-
+    const char *compress_suffix = "_pq_compressed_vectors.bin";
     const char *suffix = "_pq_pivots.bin";
     size_t total_len = strlen(indexFilePath) + strlen(suffix) + 1;
+    size_t total_len_compress = strlen(indexFilePath) + strlen(compress_suffix) + 1;
     char *pq_pivots_path = palloc(total_len);
+    char *pq_compressed_vectors_path = palloc(total_len_compress);
     if (pq_pivots_path == NULL)
     {
         perror("palloc failed");
@@ -815,6 +878,8 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     }
     strcpy(pq_pivots_path, indexFilePath);
     strcat(pq_pivots_path, suffix);
+    strcpy(pq_compressed_vectors_path, indexFilePath);
+    strcat(pq_compressed_vectors_path, compress_suffix);
     char *buildParams = strdup(indexBuildParameters);
     /* 解析 indexBuildParameters */
     token = strtok(buildParams, " ");
@@ -853,8 +918,6 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
 
     elog(INFO, "参数解析完成: R=%u, L=%u, final_index_ram_limit=%.2f, indexing_ram_budget=%.2f, 线程数=%u",
          R, L, final_index_ram_limit, indexing_ram_budget, num_threads);
-
-   
 
     // dim 向量维度
 
@@ -895,7 +958,7 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     elog(INFO, "开始构建索引: R=%u, L=%u, 线程数=%u", R, L, num_threads);
 
     // 生成量化数据
-    generate_quantized_data(dataFilePath, pq_pivots_path, pq_pivots_path, compareMetric, 0.5, 8, use_opq, codebook_prefix, npt,dim);
+    generate_quantized_data(dataFilePath, pq_pivots_path, pq_compressed_vectors_path, compareMetric, 0.5, 8, use_opq, codebook_prefix, npt, dim);
 
     /* 清理临时文件（如果有的话） */
     if (created_temp_file_for_processed_data)
@@ -903,6 +966,7 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
         elog(DEBUG1, "删除临时文件");
     }
     pfree(pq_pivots_path);
+    pfree(pq_compressed_vectors_path);
     free(buildParams);
     return 0;
 }
