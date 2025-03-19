@@ -1,33 +1,29 @@
-// .vscode/tasks.json
 {
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "make",
             "type": "shell",
-            "command": "gcc",
-            "args": [
-                "-g",
-                // 头文件路径（根据实际路径调整）
-                "-I/usr/include/postgresql/17/server",
-                // 源码文件（建议改用 Makefile 管理）
-                "src/build_index.c",
-                // 链接 PostgreSQL 服务端库（关键）
-                "-L/usr/lib/postgresql/17/lib", // 库路径
-                "-lpgcommon", // 必须链接的服务端库
-                "-lpgport", // 必须链接的服务端库
-                "-lpq", // 客户端库（可选）
-                // 禁用 PIE 解决警告
-                "-no-pie",
-                // 输出文件
-                "-o",
-                "${workspaceFolder}/build_index"
-            ],
+            "command": "make",
+            "args": [],
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": "$gcc"
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "make install",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "install"
+            ],
+            "problemMatcher": [
+                "$gcc"
+            ]
         }
     ]
 }

@@ -326,11 +326,8 @@ const float *load_vector_data(const char *table_name, const char *column_name, s
     }
 
     char query[256];
-    snprintf(query, sizeof(query), "SELECT %s FROM %s where id < 100", column_name, table_name);
-    elog(INFO, "Executing SQL: %s", query);
-    elog(INFO, "start query");
+    snprintf(query, sizeof(query), "SELECT %s FROM %s where id < 1000", column_name, table_name);
     int ret = SPI_exec(query, 0);
-    elog(INFO, "ret = %d", ret);
     if (ret != SPI_OK_SELECT)
     {
         elog(ERROR, "SPI_exec failed: %s", query);
@@ -340,6 +337,7 @@ const float *load_vector_data(const char *table_name, const char *column_name, s
 
     // 获取数据点数（行数）
     *npts = (size_t)SPI_processed;
+    elog(INFO, "npts = %zu", *npts);
     if (*npts == 0)
     {
         elog(WARNING, "No data found in table: %s", table_name);
@@ -348,7 +346,6 @@ const float *load_vector_data(const char *table_name, const char *column_name, s
     }
 
     // 读取第一个 vector 以确定维度
-    elog(INFO, "ready SPI_getbinval");
     bool isnull;
     Datum first_val = SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1, &isnull);
     if (isnull)
@@ -361,7 +358,6 @@ const float *load_vector_data(const char *table_name, const char *column_name, s
     elog(INFO, "ready DatumGetArrayTypeP");
     Vector *vec = (Vector *)DatumGetPointer(first_val);
     *ndims = vec->dim; // 获取 vector 维度
-    elog(INFO, "vector OK");
     // 使用 PostgreSQL 内存管理
     ctx = AllocSetContextCreate(CurrentMemoryContext,
                                 "VectorDataMemoryContext",
@@ -389,7 +385,7 @@ const float *load_vector_data(const char *table_name, const char *column_name, s
 
         Vector *vec = (Vector *)DatumGetPointer(val);
         float *vec_data = vec->x;
-        elog(INFO,"loop:i = %ld", i);
+        //elog(INFO,"loop:i = %ld", i);
         // 复制数据到 inputdata
         memcpy(inputdata + i * (*ndims), vec_data, (*ndims) * sizeof(float));
     }
@@ -570,9 +566,9 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
     return 0;
 }
 
-void generate_opq_pivots(float *train_data, size_t train_size, uint32_t train_dim,
-                         uint32_t num_centroids, uint32_t num_pq_chunks,
-                         const char *pivots_path, bool make_zero_mean);
+// void generate_opq_pivots(float *train_data, size_t train_size, uint32_t train_dim,
+//                          uint32_t num_centroids, uint32_t num_pq_chunks,
+//                          const char *pivots_path, bool make_zero_mean);
 
 int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, uint32_t num_pq_chunks,
                                  const char *pq_pivots_path, const char *pq_compressed_vectors_path,
@@ -632,12 +628,14 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
     }
 
     /* Load pivot data */
-    load_bin_size_t(pq_pivots_path, &file_offset_data, &nr, &nc);
-    if (nr != 4)
-    {
-        elog(ERROR, "Error reading pq_pivots file: %s", pq_pivots_path);
-        return -1;
-    }
+    // nr npts
+    // nc dims
+    load_bin_uint32(pq_pivots_path, &file_offset_data, &nr, &nc,0);
+    // if (true)
+    // {
+    //     elog(INFO, "Error reading pq_pivots file: %s", pq_pivots_path);
+    //     //return -1;
+    // }
 
     load_bin_float(pq_pivots_path, &full_pivot_data, &nr, &nc, file_offset_data[0]);
     load_bin_float(pq_pivots_path, &centroid, &nr, &nc, file_offset_data[1]);
@@ -711,13 +709,13 @@ void generate_quantized_data(
     double p_val,
     size_t num_pq_chunks,
     bool use_opq,
-    const char *codebook_prefix)
+    const char *codebook_prefix, size_t npt, size_t dim)
 {
     size_t train_size;
     size_t train_dim = 128;
     float *train_data = NULL;
-    size_t npts = 1000; // 1000个点
-    size_t ndims = 128; // 128维向量
+    size_t npts = npt;  
+    size_t ndims = dim; // 128维向量
 
     float *inputdata = (float *)palloc(npts * ndims * sizeof(float));
     float *sampled_data = NULL;
@@ -740,15 +738,16 @@ void generate_quantized_data(
         if (!use_opq)
         {
             elog(INFO, "start generate pivots");
-            generate_pq_pivots(sampled_data, slice_size, (uint32_t)train_dim,
+            generate_pq_pivots(sampled_data, slice_size, (uint32_t)ndims,
                                NUM_PQ_CENTROIDS, (uint32_t)num_pq_chunks,
                                NUM_KMEANS_REPS_PQ, pq_pivots_path, make_zero_mean);
         }
         else
         {
-            generate_opq_pivots(sampled_data, slice_size, (uint32_t)train_dim,
-                                NUM_PQ_CENTROIDS, (uint32_t)num_pq_chunks,
-                                pq_pivots_path, make_zero_mean);
+            // generate_opq_pivots(sampled_data, slice_size, (uint32_t)train_dim,
+            //                     NUM_PQ_CENTROIDS, (uint32_t)num_pq_chunks,
+            //                     pq_pivots_path, make_zero_mean);
+            elog(INFO, "Skip OPQ Training with predefined pivots in: %s", pq_pivots_path); // 使用 LOG 级别
         }
         free(train_data);
     }
@@ -786,7 +785,7 @@ void create_disk_layout()
 
 int build_disk_index(const char *dataFilePath, const char *indexFilePath,
                      const char *indexBuildParameters, enum diskann_metric_t compareMetric,
-                     int use_opq, const char *codebook_prefix)
+                     int use_opq, const char *codebook_prefix,size_t npt,size_t dim)
 {
 
     /* 变量定义部分 */
@@ -800,8 +799,10 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     unsigned int disk_pq_dims = 0;
     unsigned int build_pq_bytes = 0;
     int reorder_data = 0;
-    size_t points_num, dim;
     int created_temp_file_for_processed_data = 0;
+
+    time_t start = time(NULL);
+    time_t end = time(NULL);
     // char *pq_pivots_path = indexFilePath + "_pq_pivots.bin";
 
     const char *suffix = "_pq_pivots.bin";
@@ -814,9 +815,7 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     }
     strcpy(pq_pivots_path, indexFilePath);
     strcat(pq_pivots_path, suffix);
-    elog(INFO, "start build_index");
-    elog(INFO, "debug line_number_118:%s", indexBuildParameters);
-    char *buildParams = strdup("50 64 200 1 1");
+    char *buildParams = strdup(indexBuildParameters);
     /* 解析 indexBuildParameters */
     token = strtok(buildParams, " ");
     elog(INFO, "debug line_number_119:");
@@ -855,10 +854,8 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     elog(INFO, "参数解析完成: R=%u, L=%u, final_index_ram_limit=%.2f, indexing_ram_budget=%.2f, 线程数=%u",
          R, L, final_index_ram_limit, indexing_ram_budget, num_threads);
 
-    time_t start = time(NULL);
-    time_t end = time(NULL);
+   
 
-    // points_num 向量规模
     // dim 向量维度
 
     /* 处理 PQ 相关参数 */
@@ -898,7 +895,7 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     elog(INFO, "开始构建索引: R=%u, L=%u, 线程数=%u", R, L, num_threads);
 
     // 生成量化数据
-    generate_quantized_data(dataFilePath, pq_pivots_path, pq_pivots_path, compareMetric, 0.5, 8, use_opq, codebook_prefix);
+    generate_quantized_data(dataFilePath, pq_pivots_path, pq_pivots_path, compareMetric, 0.5, 8, use_opq, codebook_prefix, npt,dim);
 
     /* 清理临时文件（如果有的话） */
     if (created_temp_file_for_processed_data)
@@ -906,6 +903,6 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
         elog(DEBUG1, "删除临时文件");
     }
     pfree(pq_pivots_path);
-
+    free(buildParams);
     return 0;
 }

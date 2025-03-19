@@ -11,32 +11,30 @@ TESTS = $(wildcard test/sql/*.sql)
 REGRESS = $(patsubst test/sql/%.sql,%,$(TESTS))
 REGRESS_OPTS = --inputdir=test --load-extension=$(EXTENSION)
 
-# To compile for portability, run: make OPTFLAGS=""
-OPTFLAGS = -march=native
+# 调试模式：关闭优化并启用调试信息
+OPTFLAGS = -g -O0
 
 # Mac ARM doesn't always support -march=native
 ifeq ($(shell uname -s), Darwin)
 	ifeq ($(shell uname -p), arm)
 		# no difference with -march=armv8.5-a
-		OPTFLAGS =
+		OPTFLAGS = -g -O0
 	endif
 endif
 
 # PowerPC doesn't support -march=native
 ifneq ($(filter ppc64%, $(shell uname -m)), )
-	OPTFLAGS =
+	OPTFLAGS = -g -O0
 endif
 
-# For auto-vectorization:
-# - GCC (needs -ftree-vectorize OR -O3) - https://gcc.gnu.org/projects/tree-ssa/vectorization.html
-# - Clang (could use pragma instead) - https://llvm.org/docs/Vectorizers.html
+# 启用自动向量化，调试向量化过程
 PG_CFLAGS += $(OPTFLAGS) -ftree-vectorize -fassociative-math -fno-signed-zeros -fno-trapping-math
 
-# Debug GCC auto-vectorization
-# PG_CFLAGS += -fopt-info-vec
+# 调试 GCC 向量化信息（可选）
+PG_CFLAGS += -fopt-info-vec
 
-# Debug Clang auto-vectorization
-# PG_CFLAGS += -Rpass=loop-vectorize -Rpass-analysis=loop-vectorize
+# 调试 Clang 向量化信息（可选）
+PG_CFLAGS += -Rpass=loop-vectorize -Rpass-analysis=loop-vectorize
 
 all: sql/$(EXTENSION)--$(EXTVERSION).sql
 
@@ -77,3 +75,5 @@ docker:
 
 docker-release:
 	docker buildx build --push --pull --no-cache --platform linux/amd64,linux/arm64 --build-arg PG_MAJOR=$(PG_MAJOR) -t pgvector/pgvector:pg$(PG_MAJOR) -t pgvector/pgvector:$(EXTVERSION)-pg$(PG_MAJOR) .
+
+$(info PG_CFLAGS = $(PG_CFLAGS))
