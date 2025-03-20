@@ -12,6 +12,7 @@
 #include "utils/array.h"
 #include "catalog/pg_type.h"
 #include "vector.h"
+#include <unistd.h>
 #include "storage/fd.h"
 #include <stdint.h>
 #include <errno.h>
@@ -177,48 +178,6 @@ void load_bin_float(const char *bin_file, float **data, size_t *npts, size_t *di
     fclose(fp);
 }
 
-void load_bin_uint32(const char *bin_file, uint32_t **data, size_t *num_centers, size_t *dim, size_t offset)
-{
-    FILE *fp = fopen(bin_file, "rb");
-    if (!fp)
-    {
-        fprintf(stderr, "Error opening file %s: %s\n", bin_file, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    if (fseek(fp, offset, SEEK_SET) != 0)
-    {
-        fprintf(stderr, "Error seeking file %s\n", bin_file);
-        fclose(fp);
-        exit(EXIT_FAILURE);
-    }
-
-    if (fread(num_centers, sizeof(uint32_t), 1, fp) != 1 || fread(dim, sizeof(uint32_t), 1, fp) != 1)
-    {
-        fprintf(stderr, "Error reading metadata from file %s\n", bin_file);
-        fclose(fp);
-        exit(EXIT_FAILURE);
-    }
-
-    *data = (float *)malloc((*num_centers) * (*dim) * sizeof(uint32_t));
-    if (!*data)
-    {
-        fprintf(stderr, "Memory allocation failed\n");
-        fclose(fp);
-        exit(EXIT_FAILURE);
-    }
-
-    if (fread(*data, sizeof(float), (*num_centers) * (*dim), fp) != (*num_centers) * (*dim))
-    {
-        fprintf(stderr, "Error reading data from file %s\n", bin_file);
-        free(*data);
-        fclose(fp);
-        exit(EXIT_FAILURE);
-    }
-
-    fclose(fp);
-}
-
 size_t save_pq_pivots(const char *filename, void *data, size_t num_centers, size_t ndims, void *centroid, size_t *chunk_offsets, size_t num_chunks)
 {
     elog(INFO, "Writing binary file: %s, num_centers: %zu, ndims: %zu", filename, num_centers, ndims);
@@ -289,6 +248,17 @@ void kmeanspp_selecting_pivots(float *data, size_t num_points, size_t dim, float
                 break;
             }
         }
+
+        //避免聚类中心重复
+        // for (size_t j = 0; j < num_picked; j++)
+        // {
+        //     if (picked[j] == tmp_pivot)
+        //     {
+        //         num_picked--;
+        //         break;
+        //     }
+        // }
+
         picked[num_picked] = tmp_pivot;
         memcpy(pivot_data + num_picked * dim, data + tmp_pivot * dim, dim * sizeof(float));
 
@@ -684,23 +654,11 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
     /* Load pivot data */
     int ret = load_pq_pivots(pq_pivots_path, &full_pivot_data, &num_centers, &dim, &centroid, &chunk_offsets, &num_pq_chunks);
     elog(INFO, "load_pq_pivots ret = %d", ret);
-    if(ret == 0)
+    if (ret == 0)
     {
         elog(ERROR, "Error loading PQ pivot data from file: %s", pq_pivots_path);
         return -1;
     }
-    // nr npts
-    // nc dims
-    // load_bin_uint32(pq_pivots_path, &file_offset_data, &nr, &nc,0);
-    // if (true)
-    // {
-    //     elog(INFO, "Error reading pq_pivots file: %s", pq_pivots_path);
-    //     //return -1;
-    // }
-
-    // load_bin_float(pq_pivots_path, &full_pivot_data, &nr, &nc, file_offset_data[0]);
-    // load_bin_float(pq_pivots_path, &centroid, &nr, &nc, file_offset_data[1]);
-    // load_bin_uint32(pq_pivots_path, &chunk_offsets, &nr, &nc, file_offset_data[2]);
 
     if (use_opq)
     {
@@ -836,10 +794,6 @@ bool file_exists(const char *path)
 #endif
 }
 
-void build_merged_vamana_index()
-{
-}
-
 void create_disk_layout()
 {
 }
@@ -861,6 +815,8 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     unsigned int build_pq_bytes = 0;
     int reorder_data = 0;
     int created_temp_file_for_processed_data = 0;
+    size_t num_pq_chunks = 8;
+    double p_val = 0.1;
 
     time_t start = time(NULL);
     time_t end = time(NULL);
@@ -958,7 +914,7 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     elog(INFO, "开始构建索引: R=%u, L=%u, 线程数=%u", R, L, num_threads);
 
     // 生成量化数据
-    generate_quantized_data(dataFilePath, pq_pivots_path, pq_compressed_vectors_path, compareMetric, 0.5, 8, use_opq, codebook_prefix, npt, dim);
+    generate_quantized_data(dataFilePath, pq_pivots_path, pq_compressed_vectors_path, compareMetric, p_val, num_pq_chunks, use_opq, codebook_prefix, npt, dim);
 
     /* 清理临时文件（如果有的话） */
     if (created_temp_file_for_processed_data)

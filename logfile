@@ -255,3 +255,112 @@
 2025-03-19 21:30:18.723 CST [23192] STATEMENT:  select test_vamana();
 2025-03-19 21:31:14.567 CST [18659] LOG:  checkpoint starting: time
 2025-03-19 21:34:40.000 CST [18659] LOG:  checkpoint complete: wrote 2050 buffers (12.5%); 0 WAL file(s) added, 0 removed, 1 recycled; write=205.335 s, sync=0.068 s, total=205.434 s; sync files=83, longest=0.006 s, average=0.001 s; distance=17559 kB, estimate=17559 kB; lsn=0/15F40370, redo lsn=0/15F2C838
+2025-03-20 16:35:33.627 CST [55943] LOG:  starting PostgreSQL 17.4 on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, 64-bit
+2025-03-20 16:35:33.630 CST [55943] LOG:  listening on IPv4 address "127.0.0.1", port 5433
+2025-03-20 16:35:33.641 CST [55943] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5433"
+2025-03-20 16:35:33.658 CST [55946] LOG:  database system was interrupted; last known up at 2025-03-19 21:34:39 CST
+2025-03-20 16:35:34.350 CST [55946] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-03-20 16:35:34.361 CST [55946] LOG:  redo starts at 0/15F2C838
+2025-03-20 16:35:34.368 CST [55946] LOG:  invalid record length at 0/15F40420: expected at least 24, got 0
+2025-03-20 16:35:34.369 CST [55946] LOG:  redo done at 0/15F403E8 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2025-03-20 16:35:34.382 CST [55944] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-03-20 16:35:34.436 CST [55944] LOG:  checkpoint complete: wrote 24 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.015 s, sync=0.019 s, total=0.061 s; sync files=17, longest=0.006 s, average=0.002 s; distance=78 kB, estimate=78 kB; lsn=0/15F40420, redo lsn=0/15F40420
+2025-03-20 16:35:34.442 CST [55943] LOG:  database system is ready to accept connections
+2025-03-20 16:40:34.548 CST [55944] LOG:  checkpoint starting: time
+2025-03-20 16:40:53.009 CST [55944] LOG:  checkpoint complete: wrote 182 buffers (1.1%); 0 WAL file(s) added, 0 removed, 1 recycled; write=18.332 s, sync=0.070 s, total=18.462 s; sync files=61, longest=0.019 s, average=0.002 s; distance=1369 kB, estimate=1369 kB; lsn=0/16096C90, redo lsn=0/16096C00
+2025-03-20 20:30:32.162 CST [56055] LOG:  Processing chunk 0 with dimensions [0, 16)
+2025-03-20 20:30:32.162 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:33.987 CST [56055] LOG:  Processing chunk 1 with dimensions [16, 32)
+2025-03-20 20:30:33.987 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:35.834 CST [56055] LOG:  Processing chunk 2 with dimensions [32, 48)
+2025-03-20 20:30:35.834 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:37.744 CST [56055] LOG:  Processing chunk 3 with dimensions [48, 64)
+2025-03-20 20:30:37.744 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:39.663 CST [56055] LOG:  Processing chunk 4 with dimensions [64, 80)
+2025-03-20 20:30:39.663 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:41.577 CST [56055] LOG:  Processing chunk 5 with dimensions [80, 96)
+2025-03-20 20:30:41.577 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:43.500 CST [56055] LOG:  Processing chunk 6 with dimensions [96, 112)
+2025-03-20 20:30:43.500 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:45.427 CST [56055] LOG:  Processing chunk 7 with dimensions [112, 128)
+2025-03-20 20:30:45.427 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:47.369 CST [56055] LOG:  Finished writing binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin
+2025-03-20 20:30:47.369 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:47.390 CST [56055] LOG:  Finished reading binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin, total bytes read: 131664
+2025-03-20 20:30:47.390 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:47.391 CST [56055] LOG:  Loaded PQ pivot information
+2025-03-20 20:30:47.391 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:47.917 CST [56055] LOG:  Processed points [0, 8192]
+2025-03-20 20:30:47.917 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:48.615 CST [56055] LOG:  Processed points [8192, 16384]
+2025-03-20 20:30:48.615 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:49.304 CST [56055] LOG:  Processed points [16384, 24576]
+2025-03-20 20:30:49.304 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:30:49.357 CST [56055] LOG:  Processed points [24576, 25000]
+2025-03-20 20:30:49.357 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:31:48.370 CST [56055] LOG:  Processing chunk 0 with dimensions [0, 16)
+2025-03-20 20:31:48.370 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:31:50.327 CST [56055] LOG:  Processing chunk 1 with dimensions [16, 32)
+2025-03-20 20:31:50.327 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:31:52.309 CST [56055] LOG:  Processing chunk 2 with dimensions [32, 48)
+2025-03-20 20:31:52.309 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:31:54.279 CST [56055] LOG:  Processing chunk 3 with dimensions [48, 64)
+2025-03-20 20:31:54.279 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:31:56.183 CST [56055] LOG:  Processing chunk 4 with dimensions [64, 80)
+2025-03-20 20:31:56.183 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:31:58.085 CST [56055] LOG:  Processing chunk 5 with dimensions [80, 96)
+2025-03-20 20:31:58.085 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:32:00.003 CST [56055] LOG:  Processing chunk 6 with dimensions [96, 112)
+2025-03-20 20:32:00.003 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:32:01.904 CST [56055] LOG:  Processing chunk 7 with dimensions [112, 128)
+2025-03-20 20:32:01.904 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:32:03.869 CST [56055] LOG:  Finished writing binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin
+2025-03-20 20:32:03.869 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:32:03.933 CST [56055] LOG:  Finished reading binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin, total bytes read: 131664
+2025-03-20 20:32:03.933 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:32:09.180 CST [56055] LOG:  Loaded PQ pivot information
+2025-03-20 20:32:09.180 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 20:34:12.518 CST [55944] LOG:  checkpoint starting: time
+2025-03-20 20:37:44.099 CST [55944] LOG:  checkpoint complete: wrote 2112 buffers (12.9%); 0 WAL file(s) added, 0 removed, 2 recycled; write=211.442 s, sync=0.075 s, total=211.582 s; sync files=91, longest=0.010 s, average=0.001 s; distance=33760 kB, estimate=33760 kB; lsn=0/1818F008, redo lsn=0/1818EF78
+2025-03-20 21:05:12.036 CST [56055] LOG:  Processed points [0, 8192]
+2025-03-20 21:05:12.036 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 21:05:12.577 CST [56055] LOG:  Processed points [8192, 16384]
+2025-03-20 21:05:12.577 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 21:05:13.086 CST [56055] LOG:  Processed points [16384, 24576]
+2025-03-20 21:05:13.086 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 21:05:13.115 CST [56055] LOG:  Processed points [24576, 25000]
+2025-03-20 21:05:13.115 CST [56055] STATEMENT:  select test_vamana();
+2025-03-20 23:45:55.969 CST [7299] LOG:  starting PostgreSQL 17.4 on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, 64-bit
+2025-03-20 23:45:55.972 CST [7299] LOG:  listening on IPv4 address "127.0.0.1", port 5433
+2025-03-20 23:45:55.982 CST [7299] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5433"
+2025-03-20 23:45:55.997 CST [7302] LOG:  database system was interrupted; last known up at 2025-03-20 20:37:44 CST
+2025-03-20 23:45:56.697 CST [7302] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-03-20 23:45:56.707 CST [7302] LOG:  redo starts at 0/1818EF78
+2025-03-20 23:45:56.707 CST [7302] LOG:  invalid record length at 0/1818F0B8: expected at least 24, got 0
+2025-03-20 23:45:56.708 CST [7302] LOG:  redo done at 0/1818F080 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2025-03-20 23:45:56.723 CST [7300] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-03-20 23:45:56.763 CST [7300] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.014 s, sync=0.005 s, total=0.047 s; sync files=2, longest=0.003 s, average=0.003 s; distance=0 kB, estimate=0 kB; lsn=0/1818F0B8, redo lsn=0/1818F0B8
+2025-03-20 23:45:56.771 CST [7299] LOG:  database system is ready to accept connections
+2025-03-20 23:46:54.963 CST [7398] LOG:  Processing chunk 0 with dimensions [0, 16)
+2025-03-20 23:46:54.963 CST [7398] STATEMENT:  select test_vamana();
+2025-03-20 23:50:22.669 CST [7299] LOG:  received fast shutdown request
+2025-03-20 23:50:22.685 CST [7299] LOG:  aborting any active transactions
+2025-03-20 23:50:22.686 CST [7299] LOG:  background worker "logical replication launcher" (PID 7311) exited with exit code 1
+2025-03-20 23:50:56.865 CST [7300] LOG:  checkpoint starting: time
+2025-03-20 23:51:56.656 CST [880] LOG:  starting PostgreSQL 17.4 on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, 64-bit
+2025-03-20 23:51:56.657 CST [880] LOG:  listening on IPv4 address "127.0.0.1", port 5433
+2025-03-20 23:51:56.668 CST [880] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5433"
+2025-03-20 23:51:56.684 CST [889] LOG:  database system was interrupted; last known up at 2025-03-20 23:45:56 CST
+2025-03-20 23:51:57.243 CST [889] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-03-20 23:51:57.249 CST [889] LOG:  redo starts at 0/1818F130
+2025-03-20 23:51:57.319 CST [889] LOG:  invalid record length at 0/1915B848: expected at least 24, got 0
+2025-03-20 23:51:57.319 CST [889] LOG:  redo done at 0/1915B810 system usage: CPU: user: 0.05 s, system: 0.00 s, elapsed: 0.07 s
+2025-03-20 23:51:57.329 CST [887] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-03-20 23:51:57.384 CST [887] LOG:  checkpoint complete: wrote 1873 buffers (11.4%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.015 s, sync=0.021 s, total=0.061 s; sync files=13, longest=0.009 s, average=0.002 s; distance=16177 kB, estimate=16177 kB; lsn=0/1915B848, redo lsn=0/1915B848
+2025-03-20 23:51:57.390 CST [880] LOG:  database system is ready to accept connections
+2025-03-20 23:52:17.850 CST [1030] LOG:  Processing chunk 0 with dimensions [0, 16)
+2025-03-20 23:52:17.850 CST [1030] STATEMENT:  select test_vamana();
+2025-03-20 23:55:10.365 CST [880] LOG:  received fast shutdown request
+2025-03-20 23:55:10.371 CST [880] LOG:  aborting any active transactions
+2025-03-20 23:55:10.372 CST [880] LOG:  background worker "logical replication launcher" (PID 925) exited with exit code 1
+2025-03-20 23:56:57.476 CST [887] LOG:  checkpoint starting: time
