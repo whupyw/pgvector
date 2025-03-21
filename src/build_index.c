@@ -216,18 +216,21 @@ void kmeanspp_selecting_pivots(float *data, size_t num_points, size_t dim, float
     size_t init_id = rand_r(&seed) % num_points;
     picked[0] = init_id;
     memcpy(pivot_data, data + init_id * dim, dim * sizeof(float));
-
+    size_t max_try = 10;
+#pragma omp parallel for schedule(static, 8192)
     for (size_t i = 0; i < num_points; i++)
     {
         dist[i] = 0.0;
         for (size_t d = 0; d < dim; d++)
         {
             float diff = data[i * dim + d] - data[init_id * dim + d];
-            dist[i] += diff * diff;
+            dist[i] += diff * diff;//计算与聚类中心的距离
         }
     }
 
-    for (size_t num_picked = 1; num_picked < num_centers; num_picked++)
+    size_t num_picked = 1;
+
+    while (num_picked < num_centers)
     {
         double sum = 0.0;
         for (size_t i = 0; i < num_points; i++)
@@ -249,19 +252,26 @@ void kmeanspp_selecting_pivots(float *data, size_t num_points, size_t dim, float
             }
         }
 
-        //避免聚类中心重复
-        // for (size_t j = 0; j < num_picked; j++)
-        // {
-        //     if (picked[j] == tmp_pivot)
-        //     {
-        //         num_picked--;
-        //         break;
-        //     }
-        // }
+        // 避免聚类中心重复
+        for (size_t j = 0; j < num_picked; j++)
+        {
+            if (picked[j] == tmp_pivot)
+            {
+                max_try--;
+                if (max_try < 0)
+                {
+                    elog(ERROR, "ERROR: k-means++ failed to select unique pivots, fallback to random selection");
+                    pfree(picked);
+                    pfree(dist);
+                    return;
+                }
+                continue;
+            }
+        }
 
         picked[num_picked] = tmp_pivot;
         memcpy(pivot_data + num_picked * dim, data + tmp_pivot * dim, dim * sizeof(float));
-
+        num_picked++;
         for (size_t i = 0; i < num_points; i++)
         {
             float new_dist = 0.0;
@@ -340,6 +350,7 @@ float run_lloyds(float *data, size_t num_points, size_t dim, float *centers, siz
 
 const float *load_vector_data(const char *table_name, const char *column_name, size_t *npts, size_t *ndims)
 {
+
     elog(INFO, "print npts = %zu, ndims = %zu", *npts, *ndims);
     elog(INFO, "start load_vector_data");
     MemoryContext ctx, old_ctx;
@@ -418,6 +429,137 @@ const float *load_vector_data(const char *table_name, const char *column_name, s
     SPI_finish();
 
     return inputdata;
+}
+
+void get_vector_data_param(const char *table_name, const char *column_name, size_t *npts, size_t *ndims)
+{
+    elog(INFO, "开始获取向量维度与行数");
+
+    // 连接到 SPI
+    if (SPI_connect() != SPI_OK_CONNECT)
+    {
+        elog(ERROR, "SPI_connect 失败");
+        return;
+    }
+
+    // 阶段 1: 获取总行数
+    //---------------------------------------
+    char count_query[256];
+    snprintf(count_query, sizeof(count_query),
+             "SELECT COUNT(*) FROM %s",
+             table_name);
+
+    int ret = SPI_exec(count_query, 0);
+    if (ret != SPI_OK_SELECT)
+    {
+        elog(ERROR, "COUNT(*) 查询失败: %s", count_query);
+        SPI_finish();
+        return;
+    }
+
+    // 从 COUNT(*) 结果中提取行数
+    bool isnull;
+    Datum rowcount = SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1, &isnull);
+    if (isnull)
+    {
+        elog(ERROR, "行数结果为 NULL");
+        SPI_finish();
+        return;
+    }
+    *npts = DatumGetInt64(rowcount);
+    elog(INFO, "数据点数量 npts = %zu", *npts);
+
+    // 阶段 2: 获取向量维度
+    //---------------------------------------
+    char sample_query[256];
+    snprintf(sample_query, sizeof(sample_query),
+             "SELECT %s FROM %s LIMIT 1", // 仅取第一行避免全表扫描
+             column_name, table_name);
+
+    ret = SPI_exec(sample_query, 0);
+    if (ret != SPI_OK_SELECT)
+    {
+        elog(ERROR, "采样查询失败: %s", sample_query);
+        SPI_finish();
+        return;
+    }
+
+    // 检查是否有数据
+    if (SPI_processed == 0)
+    {
+        elog(ERROR, "表 %s 中没有数据", table_name);
+        SPI_finish();
+        return;
+    }
+
+    // 提取第一行的向量维度
+    Datum first_val = SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1, &isnull);
+    if (isnull)
+    {
+        elog(ERROR, "首行向量为 NULL");
+        SPI_finish();
+        return;
+    }
+    Vector *vec = (Vector *)DatumGetPointer(first_val);
+    *ndims = vec->dim;
+    elog(INFO, "向量维度 ndims = %zu", *ndims);
+
+    // 清理 SPI 连接
+    SPI_finish();
+}
+
+void load_vector_data_to_mem(const char *table_name, const char *column_name, size_t *npts, size_t *ndims,float* data)
+{
+    elog(INFO, "start load_vector_data");
+    if (SPI_connect() != SPI_OK_CONNECT)
+    {
+        elog(ERROR, "SPI_connect failed");
+        //return NULL;
+    }
+
+    char query[256];
+    snprintf(query, sizeof(query), "SELECT %s FROM %s", column_name, table_name);
+    int ret = SPI_exec(query, 0);
+    if (ret != SPI_OK_SELECT)
+    {
+        elog(ERROR, "SPI_exec failed: %s", query);
+        SPI_finish();
+        //return NULL;
+    }
+
+    // 读取第一个 vector 以确定维度
+    bool isnull;
+    Datum first_val = SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1, &isnull);
+    if (isnull)
+    {
+        elog(ERROR, "First vector is NULL");
+        SPI_finish();
+        //return NULL;
+    }
+    //Vector *vec = (Vector *)DatumGetPointer(first_val);
+    //*ndims = vec->dim; // 获取 vector 维度
+
+    elog(INFO, "print npts = %zu, ndims = %zu", *npts, *ndims);
+
+    // 解析每一行数据
+    elog(INFO, "ready for loop");
+    for (size_t i = 0; i < *npts; i++)
+    {
+        HeapTuple tuple = SPI_tuptable->vals[i];
+        Datum val = SPI_getbinval(tuple, SPI_tuptable->tupdesc, 1, &isnull);
+        if (isnull)
+        {
+            elog(ERROR, "NULL vector at row %zu", i);
+            continue;
+        }
+
+        Vector *vec = (Vector *)DatumGetPointer(val);
+        float *vec_data = vec->x;
+        // elog(INFO,"loop:i = %ld", i);
+        //  复制数据到 inputdata
+        memcpy(data + i * (*ndims), vec_data, (*ndims) * sizeof(float));
+    }
+    SPI_finish();
 }
 
 /* 采样函数 */
@@ -728,15 +870,16 @@ void generate_quantized_data(
     double p_val,
     size_t num_pq_chunks,
     bool use_opq,
-    const char *codebook_prefix, size_t npt, size_t dim)
+    const char *codebook_prefix)
 {
     size_t train_size;
     size_t train_dim = 128;
     float *train_data = NULL;
-    size_t npts = npt;
-    size_t ndims = dim; // 128维向量
-
+    size_t npts;
+    size_t ndims; // 128维向量
+    get_vector_data_param("vectors", "embedding", &npts, &ndims);
     float *inputdata = (float *)palloc(npts * ndims * sizeof(float));
+    load_vector_data_to_mem("vectors", "embedding", &npts, &ndims, inputdata);
     float *sampled_data = NULL;
     size_t slice_size = 0;
 
@@ -745,7 +888,7 @@ void generate_quantized_data(
     if (!file_exists(codebook_prefix))
     {
         // 生成随机数据切片
-        gen_random_slice(inputdata, npts, ndims, 0.5, &sampled_data, &slice_size);
+        gen_random_slice(inputdata, npts, ndims, p_val, &sampled_data, &slice_size);
         elog(INFO, "Training data with %zu samples loaded.", slice_size); // 使用 NOTICE 级别
 
         bool make_zero_mean = true;
@@ -914,7 +1057,7 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     elog(INFO, "开始构建索引: R=%u, L=%u, 线程数=%u", R, L, num_threads);
 
     // 生成量化数据
-    generate_quantized_data(dataFilePath, pq_pivots_path, pq_compressed_vectors_path, compareMetric, p_val, num_pq_chunks, use_opq, codebook_prefix, npt, dim);
+    generate_quantized_data(dataFilePath, pq_pivots_path, pq_compressed_vectors_path, compareMetric, p_val, num_pq_chunks, use_opq, codebook_prefix);
 
     /* 清理临时文件（如果有的话） */
     if (created_temp_file_for_processed_data)

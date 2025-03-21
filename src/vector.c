@@ -1466,8 +1466,8 @@ Datum test_vamana(PG_FUNCTION_ARGS)
 
 	// 加载向量数据
 	float *storage = NULL;
-	const float *aa = load_vector_data("vectors", "embedding", &npt_val, &dim_val);
-	elog(INFO,"npt_val = %d, dim_val = %d", npt_val, dim_val);
+	//load_vector_data("vectors", "embedding", &npt_val, &dim_val);
+	//elog(INFO,"npt_val = %d, dim_val = %d", npt_val, dim_val);
 	// gen_random_slice(aa, npt_val, dim_val, 0.01, &storage, &slice_size);
 	const char *dataFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_learn.fbin";
 	const char *indexFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test";

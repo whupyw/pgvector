@@ -364,3 +364,193 @@
 2025-03-20 23:55:10.371 CST [880] LOG:  aborting any active transactions
 2025-03-20 23:55:10.372 CST [880] LOG:  background worker "logical replication launcher" (PID 925) exited with exit code 1
 2025-03-20 23:56:57.476 CST [887] LOG:  checkpoint starting: time
+2025-03-21 10:37:01.521 CST [1660] LOG:  starting PostgreSQL 17.4 on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, 64-bit
+2025-03-21 10:37:01.523 CST [1660] LOG:  listening on IPv4 address "127.0.0.1", port 5433
+2025-03-21 10:37:01.533 CST [1660] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5433"
+2025-03-21 10:37:01.549 CST [1663] LOG:  database system was interrupted; last known up at 2025-03-20 23:51:57 CST
+2025-03-21 10:37:02.343 CST [1663] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-03-21 10:37:02.351 CST [1663] LOG:  redo starts at 0/1915B8C0
+2025-03-21 10:37:02.442 CST [1663] LOG:  invalid record length at 0/1A282418: expected at least 24, got 0
+2025-03-21 10:37:02.442 CST [1663] LOG:  redo done at 0/1A2823E0 system usage: CPU: user: 0.04 s, system: 0.02 s, elapsed: 0.09 s
+2025-03-21 10:37:02.452 CST [1661] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-03-21 10:37:02.561 CST [1661] LOG:  checkpoint complete: wrote 2062 buffers (12.6%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.019 s, sync=0.066 s, total=0.114 s; sync files=86, longest=0.007 s, average=0.001 s; distance=17562 kB, estimate=17562 kB; lsn=0/1A282418, redo lsn=0/1A282418
+2025-03-21 10:37:02.570 CST [1660] LOG:  database system is ready to accept connections
+2025-03-21 10:38:11.044 CST [1803] LOG:  Processing chunk 0 with dimensions [0, 16)
+2025-03-21 10:38:11.044 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:40:57.013 CST [1803] LOG:  Processing chunk 1 with dimensions [16, 32)
+2025-03-21 10:40:57.013 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:41:02.635 CST [1803] LOG:  Processing chunk 2 with dimensions [32, 48)
+2025-03-21 10:41:02.635 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:41:04.648 CST [1803] LOG:  Processing chunk 3 with dimensions [48, 64)
+2025-03-21 10:41:04.648 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:41:06.665 CST [1803] LOG:  Processing chunk 4 with dimensions [64, 80)
+2025-03-21 10:41:06.665 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:41:08.637 CST [1803] LOG:  Processing chunk 5 with dimensions [80, 96)
+2025-03-21 10:41:08.637 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:41:10.610 CST [1803] LOG:  Processing chunk 6 with dimensions [96, 112)
+2025-03-21 10:41:10.610 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:41:12.563 CST [1803] LOG:  Processing chunk 7 with dimensions [112, 128)
+2025-03-21 10:41:12.563 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:41:14.526 CST [1803] LOG:  Finished writing binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin
+2025-03-21 10:41:14.526 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:41:14.562 CST [1803] LOG:  Finished reading binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin, total bytes read: 131664
+2025-03-21 10:41:14.562 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:41:19.343 CST [1803] LOG:  Loaded PQ pivot information
+2025-03-21 10:41:19.343 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:41:19.918 CST [1803] LOG:  Processed points [0, 8192]
+2025-03-21 10:41:19.918 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:41:20.460 CST [1803] LOG:  Processed points [8192, 16384]
+2025-03-21 10:41:20.460 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:41:20.969 CST [1803] LOG:  Processed points [16384, 24576]
+2025-03-21 10:41:20.969 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:41:21.009 CST [1803] LOG:  Processed points [24576, 25000]
+2025-03-21 10:41:21.009 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:42:03.083 CST [1661] LOG:  checkpoint starting: time
+2025-03-21 10:42:25.121 CST [1661] LOG:  checkpoint complete: wrote 219 buffers (1.3%); 0 WAL file(s) added, 0 removed, 1 recycled; write=21.901 s, sync=0.088 s, total=22.038 s; sync files=81, longest=0.015 s, average=0.002 s; distance=18055 kB, estimate=18055 kB; lsn=0/1B424130, redo lsn=0/1B4240A0
+2025-03-21 10:43:06.618 CST [1803] LOG:  Processing chunk 0 with dimensions [0, 16)
+2025-03-21 10:43:06.618 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:47:03.223 CST [1661] LOG:  checkpoint starting: time
+2025-03-21 10:50:27.834 CST [1661] LOG:  checkpoint complete: wrote 2033 buffers (12.4%); 0 WAL file(s) added, 0 removed, 1 recycled; write=204.519 s, sync=0.046 s, total=204.611 s; sync files=73, longest=0.005 s, average=0.001 s; distance=16786 kB, estimate=17928 kB; lsn=0/1C488C98, redo lsn=0/1C488C08
+2025-03-21 10:51:13.895 CST [1803] LOG:  Processing chunk 1 with dimensions [16, 32)
+2025-03-21 10:51:13.895 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:23.446 CST [1803] LOG:  Processing chunk 2 with dimensions [32, 48)
+2025-03-21 10:51:23.446 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:25.439 CST [1803] LOG:  Processing chunk 3 with dimensions [48, 64)
+2025-03-21 10:51:25.439 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:27.424 CST [1803] LOG:  Processing chunk 4 with dimensions [64, 80)
+2025-03-21 10:51:27.424 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:29.360 CST [1803] LOG:  Processing chunk 5 with dimensions [80, 96)
+2025-03-21 10:51:29.360 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:31.331 CST [1803] LOG:  Processing chunk 6 with dimensions [96, 112)
+2025-03-21 10:51:31.331 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:33.284 CST [1803] LOG:  Processing chunk 7 with dimensions [112, 128)
+2025-03-21 10:51:33.284 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:35.280 CST [1803] LOG:  Finished writing binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin
+2025-03-21 10:51:35.280 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:35.309 CST [1803] LOG:  Finished reading binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin, total bytes read: 131664
+2025-03-21 10:51:35.309 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:35.309 CST [1803] LOG:  Loaded PQ pivot information
+2025-03-21 10:51:35.309 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:35.899 CST [1803] LOG:  Processed points [0, 8192]
+2025-03-21 10:51:35.899 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:36.418 CST [1803] LOG:  Processed points [8192, 16384]
+2025-03-21 10:51:36.418 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:36.939 CST [1803] LOG:  Processed points [16384, 24576]
+2025-03-21 10:51:36.939 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:36.977 CST [1803] LOG:  Processed points [24576, 25000]
+2025-03-21 10:51:36.977 CST [1803] STATEMENT:  select test_vamana();
+2025-03-21 10:51:55.370 CST [7409] ERROR:  table "vectors" does not exist
+2025-03-21 10:51:55.370 CST [7409] STATEMENT:  drop table vectors ;
+2025-03-21 10:52:03.924 CST [1661] LOG:  checkpoint starting: time
+2025-03-21 10:52:19.493 CST [1661] LOG:  checkpoint complete: wrote 155 buffers (0.9%); 0 WAL file(s) added, 0 removed, 0 recycled; write=15.470 s, sync=0.062 s, total=15.569 s; sync files=62, longest=0.008 s, average=0.001 s; distance=1458 kB, estimate=16281 kB; lsn=0/1C5F54C8, redo lsn=0/1C5F5438
+2025-03-21 10:55:45.365 CST [7409] LOG:  Processing chunk 0 with dimensions [0, 16)
+2025-03-21 10:55:45.365 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 10:57:04.829 CST [1661] LOG:  checkpoint starting: time
+2025-03-21 11:00:26.259 CST [1661] LOG:  checkpoint complete: wrote 2001 buffers (12.2%); 0 WAL file(s) added, 0 removed, 1 recycled; write=201.325 s, sync=0.063 s, total=201.429 s; sync files=52, longest=0.007 s, average=0.002 s; distance=16643 kB, estimate=16643 kB; lsn=0/1D636148, redo lsn=0/1D6360B8
+2025-03-21 11:05:41.337 CST [7409] LOG:  Processing chunk 1 with dimensions [16, 32)
+2025-03-21 11:05:41.337 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:08:45.942 CST [7409] LOG:  Processing chunk 2 with dimensions [32, 48)
+2025-03-21 11:08:45.942 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:08:46.787 CST [7409] LOG:  Processing chunk 3 with dimensions [48, 64)
+2025-03-21 11:08:46.787 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:08:47.651 CST [7409] LOG:  Processing chunk 4 with dimensions [64, 80)
+2025-03-21 11:08:47.651 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:08:48.544 CST [7409] LOG:  Processing chunk 5 with dimensions [80, 96)
+2025-03-21 11:08:48.544 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:08:48.943 CST [7409] LOG:  Processing chunk 6 with dimensions [96, 112)
+2025-03-21 11:08:48.943 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:08:50.292 CST [7409] LOG:  Processing chunk 7 with dimensions [112, 128)
+2025-03-21 11:08:50.292 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:11:18.903 CST [7409] LOG:  Finished writing binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin
+2025-03-21 11:11:18.903 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:12:29.610 CST [7409] LOG:  Finished reading binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin, total bytes read: 131664
+2025-03-21 11:12:29.610 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:12:29.610 CST [7409] LOG:  Loaded PQ pivot information
+2025-03-21 11:12:29.610 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:12:30.166 CST [7409] LOG:  Processed points [0, 8192]
+2025-03-21 11:12:30.166 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:12:30.681 CST [7409] LOG:  Processed points [8192, 16384]
+2025-03-21 11:12:30.681 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:12:31.214 CST [7409] LOG:  Processed points [16384, 24576]
+2025-03-21 11:12:31.214 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:12:31.254 CST [7409] LOG:  Processed points [24576, 25000]
+2025-03-21 11:12:31.254 CST [7409] STATEMENT:  select test_vamana();
+2025-03-21 11:32:04.863 CST [1660] LOG:  server process (PID 23076) was terminated by signal 11: Segmentation fault
+2025-03-21 11:32:04.863 CST [1660] DETAIL:  Failed process was running: select test_vamana();
+2025-03-21 11:32:04.864 CST [1660] LOG:  terminating any other active server processes
+2025-03-21 11:32:04.869 CST [24324] FATAL:  the database system is in recovery mode
+2025-03-21 11:32:04.870 CST [1660] LOG:  all server processes terminated; reinitializing
+2025-03-21 11:32:04.900 CST [24337] LOG:  database system was interrupted; last known up at 2025-03-21 11:00:26 CST
+2025-03-21 11:32:05.430 CST [24337] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-03-21 11:32:05.438 CST [24337] LOG:  redo starts at 0/1D6360B8
+2025-03-21 11:32:05.520 CST [24337] LOG:  invalid record length at 0/1E726DB0: expected at least 24, got 0
+2025-03-21 11:32:05.529 CST [24337] LOG:  redo done at 0/1E726D78 system usage: CPU: user: 0.06 s, system: 0.01 s, elapsed: 0.09 s
+2025-03-21 11:32:05.539 CST [24338] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-03-21 11:32:05.633 CST [24338] LOG:  checkpoint complete: wrote 2037 buffers (12.4%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.017 s, sync=0.057 s, total=0.099 s; sync files=88, longest=0.011 s, average=0.001 s; distance=17347 kB, estimate=17347 kB; lsn=0/1E726DB0, redo lsn=0/1E726DB0
+2025-03-21 11:32:05.640 CST [1660] LOG:  database system is ready to accept connections
+2025-03-21 11:45:05.380 CST [30383] ERROR:  table "vectors" does not exist
+2025-03-21 11:45:05.380 CST [30383] STATEMENT:  drop table vectors ;
+2025-03-21 11:46:03.537 CST [30383] LOG:  Processing chunk 0 with dimensions [0, 16)
+2025-03-21 11:46:03.537 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:46:03.941 CST [30383] LOG:  Processing chunk 1 with dimensions [16, 32)
+2025-03-21 11:46:03.941 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:46:04.334 CST [30383] LOG:  Processing chunk 2 with dimensions [32, 48)
+2025-03-21 11:46:04.334 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:46:04.733 CST [30383] LOG:  Processing chunk 3 with dimensions [48, 64)
+2025-03-21 11:46:04.733 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:46:05.127 CST [30383] LOG:  Processing chunk 4 with dimensions [64, 80)
+2025-03-21 11:46:05.127 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:46:05.523 CST [30383] LOG:  Processing chunk 5 with dimensions [80, 96)
+2025-03-21 11:46:05.523 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:46:05.916 CST [30383] LOG:  Processing chunk 6 with dimensions [96, 112)
+2025-03-21 11:46:05.916 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:46:06.314 CST [30383] LOG:  Processing chunk 7 with dimensions [112, 128)
+2025-03-21 11:46:06.314 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:47:06.699 CST [24338] LOG:  checkpoint starting: time
+2025-03-21 11:47:23.762 CST [30383] LOG:  Finished writing binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin
+2025-03-21 11:47:23.762 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:47:26.182 CST [30383] LOG:  Finished reading binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin, total bytes read: 131664
+2025-03-21 11:47:26.182 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:47:26.182 CST [30383] LOG:  Loaded PQ pivot information
+2025-03-21 11:47:26.182 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:47:26.708 CST [30383] LOG:  Processed points [0, 8192]
+2025-03-21 11:47:26.708 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:47:27.215 CST [30383] LOG:  Processed points [8192, 16384]
+2025-03-21 11:47:27.215 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:47:27.727 CST [30383] LOG:  Processed points [16384, 24576]
+2025-03-21 11:47:27.727 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:47:27.754 CST [30383] LOG:  Processed points [24576, 25000]
+2025-03-21 11:47:27.754 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:50:43.442 CST [24338] LOG:  checkpoint complete: wrote 758 buffers (4.6%); 0 WAL file(s) added, 0 removed, 1 recycled; write=216.642 s, sync=0.064 s, total=216.744 s; sync files=101, longest=0.003 s, average=0.001 s; distance=18279 kB, estimate=18279 kB; lsn=0/20BD2970, redo lsn=0/1F900B78
+2025-03-21 11:51:00.984 CST [30383] LOG:  Processing chunk 0 with dimensions [0, 16)
+2025-03-21 11:51:00.984 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:00.986 CST [30383] LOG:  Processing chunk 1 with dimensions [16, 32)
+2025-03-21 11:51:00.986 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:00.989 CST [30383] LOG:  Processing chunk 2 with dimensions [32, 48)
+2025-03-21 11:51:00.989 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:00.991 CST [30383] LOG:  Processing chunk 3 with dimensions [48, 64)
+2025-03-21 11:51:00.991 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:00.995 CST [30383] LOG:  Processing chunk 4 with dimensions [64, 80)
+2025-03-21 11:51:00.995 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:00.998 CST [30383] LOG:  Processing chunk 5 with dimensions [80, 96)
+2025-03-21 11:51:00.998 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:01.001 CST [30383] LOG:  Processing chunk 6 with dimensions [96, 112)
+2025-03-21 11:51:01.001 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:01.004 CST [30383] LOG:  Processing chunk 7 with dimensions [112, 128)
+2025-03-21 11:51:01.004 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:03.128 CST [30383] LOG:  Finished writing binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin
+2025-03-21 11:51:03.128 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:03.150 CST [30383] LOG:  Finished reading binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin, total bytes read: 131664
+2025-03-21 11:51:03.150 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:03.150 CST [30383] LOG:  Loaded PQ pivot information
+2025-03-21 11:51:03.150 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:03.673 CST [30383] LOG:  Processed points [0, 8192]
+2025-03-21 11:51:03.673 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:04.191 CST [30383] LOG:  Processed points [8192, 16384]
+2025-03-21 11:51:04.191 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:04.714 CST [30383] LOG:  Processed points [16384, 24576]
+2025-03-21 11:51:04.714 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:51:04.742 CST [30383] LOG:  Processed points [24576, 25000]
+2025-03-21 11:51:04.742 CST [30383] STATEMENT:  select test_vamana();
+2025-03-21 11:52:06.487 CST [24338] LOG:  checkpoint starting: time
+2025-03-21 11:52:36.280 CST [24338] LOG:  checkpoint complete: wrote 296 buffers (1.8%); 0 WAL file(s) added, 0 removed, 1 recycled; write=29.674 s, sync=0.074 s, total=29.793 s; sync files=88, longest=0.007 s, average=0.001 s; distance=19292 kB, estimate=19292 kB; lsn=0/20BD7F10, redo lsn=0/20BD7E80
