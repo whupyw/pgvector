@@ -16,6 +16,7 @@
 #include "storage/fd.h"
 #include <stdint.h>
 #include <errno.h>
+#include "vamana_index.h"
 
 #define MAX_PARAM_COUNT 9
 
@@ -191,11 +192,11 @@ size_t save_pq_pivots(const char *filename, void *data, size_t num_centers, size
     uint32_t num_centers_i32 = (uint32_t)num_centers, ndims_i32 = (uint32_t)ndims;
     size_t bytes_written = 0;
 
-    bytes_written += write(fd, &num_centers_i32, sizeof(uint32_t));
-    bytes_written += write(fd, &ndims_i32, sizeof(uint32_t));
-    bytes_written += write(fd, data, num_centers * ndims * sizeof(float));
-    bytes_written += write(fd, centroid, ndims * sizeof(float));
-    bytes_written += write(fd, chunk_offsets, (num_chunks + 1) * sizeof(size_t));
+    bytes_written += write(fd, &num_centers_i32, sizeof(uint32_t));               // 聚类中心数量
+    bytes_written += write(fd, &ndims_i32, sizeof(uint32_t));                     // 维度
+    bytes_written += write(fd, data, num_centers * ndims * sizeof(float));        // 聚类中心数据
+    bytes_written += write(fd, centroid, ndims * sizeof(float));                  // 零均值化
+    bytes_written += write(fd, chunk_offsets, (num_chunks + 1) * sizeof(size_t)); // 分块位置
 
     CloseTransientFile(fd);
     elog(LOG, "Finished writing binary file: %s", filename);
@@ -224,7 +225,7 @@ void kmeanspp_selecting_pivots(float *data, size_t num_points, size_t dim, float
         for (size_t d = 0; d < dim; d++)
         {
             float diff = data[i * dim + d] - data[init_id * dim + d];
-            dist[i] += diff * diff;//计算与聚类中心的距离
+            dist[i] += diff * diff; // 计算与聚类中心的距离
         }
     }
 
@@ -508,13 +509,13 @@ void get_vector_data_param(const char *table_name, const char *column_name, size
     SPI_finish();
 }
 
-void load_vector_data_to_mem(const char *table_name, const char *column_name, size_t *npts, size_t *ndims,float* data)
+void load_vector_data_to_mem(const char *table_name, const char *column_name, size_t *npts, size_t *ndims, float *data)
 {
     elog(INFO, "start load_vector_data");
     if (SPI_connect() != SPI_OK_CONNECT)
     {
         elog(ERROR, "SPI_connect failed");
-        //return NULL;
+        // return NULL;
     }
 
     char query[256];
@@ -524,7 +525,7 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
     {
         elog(ERROR, "SPI_exec failed: %s", query);
         SPI_finish();
-        //return NULL;
+        // return NULL;
     }
 
     // 读取第一个 vector 以确定维度
@@ -534,9 +535,9 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
     {
         elog(ERROR, "First vector is NULL");
         SPI_finish();
-        //return NULL;
+        // return NULL;
     }
-    //Vector *vec = (Vector *)DatumGetPointer(first_val);
+    // Vector *vec = (Vector *)DatumGetPointer(first_val);
     //*ndims = vec->dim; // 获取 vector 维度
 
     elog(INFO, "print npts = %zu, ndims = %zu", *npts, *ndims);
@@ -749,7 +750,6 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
     MemoryContext ctx;
     MemoryContext old_ctx;
     float *full_pivot_data;
-    float *rotmat_tr;
     float *centroid;
     size_t *chunk_offsets;
     size_t nr, nc;
@@ -782,7 +782,6 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
     old_ctx = MemoryContextSwitchTo(ctx);
 
     full_pivot_data = NULL;
-    rotmat_tr = NULL;
     centroid = NULL;
     chunk_offsets = NULL;
     file_offset_data = NULL;
@@ -794,19 +793,12 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
     }
 
     /* Load pivot data */
-    int ret = load_pq_pivots(pq_pivots_path, &full_pivot_data, &num_centers, &dim, &centroid, &chunk_offsets, &num_pq_chunks);
-    elog(INFO, "load_pq_pivots ret = %d", ret);
+    size_t ret = load_pq_pivots(pq_pivots_path, &full_pivot_data, &num_centers, &dim, &centroid, &chunk_offsets, &num_pq_chunks);
+    elog(INFO, "load_pq_pivots ret = %ld", ret);
     if (ret == 0)
     {
         elog(ERROR, "Error loading PQ pivot data from file: %s", pq_pivots_path);
         return -1;
-    }
-
-    if (use_opq)
-    {
-        char rotmat_path[256];
-        sprintf(rotmat_path, "%s_rotation_matrix.bin", pq_pivots_path); /* 替换 snprintf */
-        load_bin_float(rotmat_path, &rotmat_tr, &nr, &nc, 0);
     }
 
     elog(LOG, "Loaded PQ pivot information");
@@ -818,11 +810,14 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
         return -1;
     }
 
+    // num_point是向量的个数，num_pq_chunks是PQ的块数
     fwrite(&num_points, sizeof(uint32_t), 1, compressed_file_writer);
     fwrite(&num_pq_chunks, sizeof(uint32_t), 1, compressed_file_writer);
 
     block_size = (num_points <= 8192) ? num_points : 8192;
+    // block_compressed_base才是最小的分配向量中心的单位
     block_compressed_base = (uint32_t *)palloc0(block_size * num_pq_chunks * sizeof(uint32_t));
+    // 一次加载的向量数据
     block_data_tmp = (float *)palloc0(block_size * dim * sizeof(float));
 
     num_blocks = (num_points + block_size - 1) / block_size;
@@ -830,17 +825,22 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
     {
         size_t start_id = block * block_size;
         size_t end_id = (start_id + block_size > num_points) ? num_points : (start_id + block_size);
+        // 加载的向量的数量
         size_t cur_blk_size = end_id - start_id;
         size_t i, j;
 
         fread(block_data_tmp, sizeof(float), cur_blk_size * dim, base_reader);
 
+        // 这个分块，是想对每个块的向量进行 PQ 量化
+        // 比如第一次是对每个向量的第一个块进行量化，第二次是对每个向量的第二个块进行量化
         for (i = 0; i < num_pq_chunks; i++)
         {
+            // cur_chunk_size是每个块的大小
             size_t cur_chunk_size = chunk_offsets[i + 1] - chunk_offsets[i];
+            // 这里好像不对，应该是 cur_blk_size
             uint32_t *closest_center = (uint32_t *)palloc(cur_blk_size * sizeof(uint32_t));
-
-            compute_closest_centers(block_data_tmp, cur_blk_size, cur_chunk_size, full_pivot_data, num_centers, closest_center);
+            float *cur_block_data_temp = block_data_tmp + i * cur_chunk_size;
+            compute_closest_centers(cur_block_data_temp, cur_blk_size, cur_chunk_size, full_pivot_data, num_centers, closest_center);
             for (j = 0; j < cur_blk_size; j++)
             {
                 block_compressed_base[j * num_pq_chunks + i] = closest_center[j];
@@ -874,7 +874,6 @@ void generate_quantized_data(
 {
     size_t train_size;
     size_t train_dim = 128;
-    float *train_data = NULL;
     size_t npts;
     size_t ndims; // 128维向量
     get_vector_data_param("vectors", "embedding", &npts, &ndims);
@@ -890,7 +889,7 @@ void generate_quantized_data(
         // 生成随机数据切片
         gen_random_slice(inputdata, npts, ndims, p_val, &sampled_data, &slice_size);
         elog(INFO, "Training data with %zu samples loaded.", slice_size); // 使用 NOTICE 级别
-
+        pfree(inputdata);
         bool make_zero_mean = true;
         if (compare_metric == DISKANN_INNER_PRODUCT)
             make_zero_mean = false;
@@ -906,12 +905,8 @@ void generate_quantized_data(
         }
         else
         {
-            // generate_opq_pivots(sampled_data, slice_size, (uint32_t)train_dim,
-            //                     NUM_PQ_CENTROIDS, (uint32_t)num_pq_chunks,
-            //                     pq_pivots_path, make_zero_mean);
             elog(INFO, "Skip OPQ Training with predefined pivots in: %s", pq_pivots_path); // 使用 LOG 级别
         }
-        free(train_data);
     }
     else
     {
@@ -1059,6 +1054,9 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     // 生成量化数据
     generate_quantized_data(dataFilePath, pq_pivots_path, pq_compressed_vectors_path, compareMetric, p_val, num_pq_chunks, use_opq, codebook_prefix);
 
+    // 构建索引
+    elog(INFO, "开始构建索引");
+    build_merged_vamana_index(pq_pivots_path, pq_compressed_vectors_path, indexing_ram_budget, R, L, num_threads, 25000,128);
     /* 清理临时文件（如果有的话） */
     if (created_temp_file_for_processed_data)
     {
