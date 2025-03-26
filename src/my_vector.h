@@ -30,4 +30,4 @@ void vector_set(MyVector *vec, size_t index, int value);
 // 清理内存
 void vector_free(MyVector *vec);
 
-#endif // MyVector_H
+#endif

@@ -31,6 +31,7 @@
 #include "commands/tablecmds.h"
 
 #include "diskann.h"
+#include "vamana_index.h"
 
 #if PG_VERSION_NUM >= 160000
 #include "varatt.h"
@@ -1304,24 +1305,6 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 				(errcode_for_file_access(),
 				 errmsg("Cannot open file: %s", filepath)));
 
-	// /* 读取向量维度并验证 */
-	// if (fread(&dim, sizeof(int), 1, file) != 1)
-	// {
-	// 	fclose(file);
-	// 	ereport(ERROR,
-	// 			(errcode(ERRCODE_DATA_EXCEPTION),
-	// 			 errmsg("Failed to read dimension header")));
-	// }
-	// elog(INFO, "Detected vector dimension: %d", dim);
-
-	// if (dim <= 0)
-	// {
-	// 	fclose(file);
-	// 	ereport(ERROR,
-	// 			(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-	// 			 errmsg("Invalid vector dimension: %d", dim)));
-	// }
-
 	/* 检查pgvector扩展 */
 	SPI_connect();
 	if (SPI_execute("SELECT 1 FROM pg_type WHERE typname = 'vector'", true, 0) != SPI_OK_SELECT)
@@ -1466,17 +1449,32 @@ Datum test_vamana(PG_FUNCTION_ARGS)
 
 	// 加载向量数据
 	float *storage = NULL;
-	//load_vector_data("vectors", "embedding", &npt_val, &dim_val);
-	//elog(INFO,"npt_val = %d, dim_val = %d", npt_val, dim_val);
-	// gen_random_slice(aa, npt_val, dim_val, 0.01, &storage, &slice_size);
+	// load_vector_data("vectors", "embedding", &npt_val, &dim_val);
+	// elog(INFO,"npt_val = %d, dim_val = %d", npt_val, dim_val);
+	//  gen_random_slice(aa, npt_val, dim_val, 0.01, &storage, &slice_size);
 	const char *dataFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_learn.fbin";
 	const char *indexFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test";
 	// L=50,R=64,C=200
-	const char *buildParams = "50 64 200 1 1";
+	const char *buildParams = "10 64 200 1 1";
 	enum diskann_metric_t metric = DISKANN_L2; // 假设使用 L2 作为度量方式
-	int use_opq = false;			   // 启用 OPQ
+	int use_opq = false;					   // 启用 OPQ
 	const char *codebookPrefix = "/path/to/codebook";
 
-	int status = build_disk_index(dataFile, indexFile, buildParams, metric, use_opq, codebookPrefix,npt_val,dim_val);
+	int status = build_disk_index(dataFile, indexFile, buildParams, metric, use_opq, codebookPrefix, npt_val, dim_val);
+	PG_RETURN_NULL();
+}
+
+PG_FUNCTION_INFO_V1(test_neighbours);
+Datum test_neighbours(PG_FUNCTION_ARGS)
+{
+	uint32_t R = 10;
+	uint32_t *neighbours = (uint32_t *)palloc(1000 * R * sizeof(uint32_t));
+	generate_random_neighbors(1000, R, neighbours);
+	for(uint32_t i = 0; i < R; i++){
+		uint32_t neighbor_id = neighbours[5 * R + i];
+		elog(INFO, "the first neighbour is %d", neighbor_id);
+	}
+	pfree(neighbours);
+	elog(INFO, "Hello, Neighbours!");
 	PG_RETURN_NULL();
 }

@@ -7,7 +7,7 @@
 
 typedef struct
 {
-    unsigned id;
+    uint32_t id;
     float distance;
     bool expanded;
 } Neighbor;

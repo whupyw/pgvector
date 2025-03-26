@@ -26,7 +26,7 @@
 // 函数声明
 bool file_exists(const char *path);
 
-size_t load_pq_pivots(const char *filename, void **data, size_t *num_centers, size_t *ndims, void **centroid, size_t **chunk_offsets, uint32_t *num_chunks)
+size_t load_pq_pivots(const char *filename, void **data, uint32_t *num_centers, uint32_t *ndims, void **centroid, size_t **chunk_offsets, uint32_t *num_chunks)
 {
     elog(INFO, "Reading binary file: %s", filename);
     int fd = OpenTransientFile(filename, O_RDONLY);
@@ -48,15 +48,19 @@ size_t load_pq_pivots(const char *filename, void **data, size_t *num_centers, si
     }
     bytes_read += 2 * sizeof(uint32_t);
 
-    *num_centers = (size_t)num_centers_i32;
-    *ndims = (size_t)ndims_i32;
+    *num_centers = num_centers_i32;
+    *ndims = ndims_i32;
 
-    *data = palloc(*num_centers * *ndims * sizeof(float));
-    *centroid = palloc(*ndims * sizeof(float));
+    size_t num_centers_size_t = (size_t)num_centers_i32;
+    size_t ndims_size_t = (size_t)ndims_i32;
 
-    expected_bytes = *num_centers * *ndims * sizeof(float) + *ndims * sizeof(float);
-    if (read(fd, *data, *num_centers * *ndims * sizeof(float)) != (ssize_t)(*num_centers * *ndims * sizeof(float)) ||
-        read(fd, *centroid, *ndims * sizeof(float)) != (ssize_t)(*ndims * sizeof(float)))
+    // size_t(num_centers_i32) * size_t(ndims_i32)
+    *data = palloc(num_centers_size_t * ndims_size_t * sizeof(float));
+    *centroid = palloc(ndims_size_t * sizeof(float));
+
+    expected_bytes = num_centers_size_t * ndims_size_t * sizeof(float) + ndims_size_t * sizeof(float);
+    if (read(fd, *data, num_centers_size_t * ndims_size_t * sizeof(float)) != (ssize_t)(num_centers_size_t * ndims_size_t * sizeof(float)) ||
+        read(fd, *centroid, ndims_size_t * sizeof(float)) != (ssize_t)(ndims_size_t * sizeof(float)))
     {
         elog(ERROR, "Failed to read data or centroid from file %s", filename);
         CloseTransientFile(fd);
@@ -884,7 +888,7 @@ void generate_quantized_data(
 
     elog(INFO, "start generate_quantized_data");
 
-    if (!file_exists(codebook_prefix))
+    if (!file_exists(pq_pivots_path))
     {
         // 生成随机数据切片
         gen_random_slice(inputdata, npts, ndims, p_val, &sampled_data, &slice_size);
@@ -915,9 +919,14 @@ void generate_quantized_data(
 
     // 生成PQ压缩数据
     elog(INFO, "Generating PQ compressed data");
-    generate_pq_data_from_pivots(data_file_to_use, NUM_PQ_CENTROIDS,
-                                 (uint32_t)num_pq_chunks, pq_pivots_path,
-                                 pq_compressed_vectors_path, use_opq);
+    if(!file_exists(pq_compressed_vectors_path)){
+        generate_pq_data_from_pivots(data_file_to_use, NUM_PQ_CENTROIDS,
+                                     (uint32_t)num_pq_chunks, pq_pivots_path,
+                                     pq_compressed_vectors_path, use_opq);
+    } else {
+        elog(INFO, "Skip Generating PQ compressed data");
+    }
+   
 }
 
 // 辅助函数实现

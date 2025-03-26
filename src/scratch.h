@@ -8,33 +8,40 @@
 // 定义一个结构体，包含三个指针
 typedef struct
 {
-    MyVector *vector_ptr;             // 已经扩展的节点
-    uint32_t *bit_array_ptr;          // 已经访问的节点
-    NeighborPriorityQueue *queue_ptr; // 指向 NeighborPriorityQueue
+    MyVector *expanded_nodes;             // 已经扩展的节点
+    uint32_t *is_visited;          // 已经访问的节点
+    NeighborPriorityQueue *best_L_nodes; // 指向 NeighborPriorityQueue
+    size_t *entry_point;
+    size_t *max_point;
 } Scratch;
 
 // 初始化 Scratch 结构体的方法
-void init_scratch(Scratch *scratch, size_t vector_capacity, size_t bit_array_size, size_t L_Size)
+void init_scratch(Scratch *scratch, size_t vector_capacity, size_t L_Size, size_t entry_point)
 {
     // 初始化 MyVector
-    //scratch->vector_ptr = (MyVector *)malloc(sizeof(MyVector));
-    vector_init(scratch->vector_ptr); // 使用 MyVector 的初始化函数
+    scratch->expanded_nodes = (MyVector *)malloc(sizeof(MyVector));
+    vector_init(scratch->expanded_nodes); // 使用 MyVector 的初始化函数
 
     // 初始化 bit_array
-    scratch->bit_array_ptr = (uint32_t *)calloc(bit_array_size, sizeof(uint32_t)); // 使用 calloc 确保初始化为0
+    scratch->is_visited = (uint32_t *)calloc(vector_capacity, sizeof(uint32_t)); // 使用 calloc 确保初始化为0
 
     // 初始化 NeighborPriorityQueue
-    //scratch->queue_ptr = (NeighborPriorityQueue *)malloc(sizeof(NeighborPriorityQueue));
-    init_queue(scratch->queue_ptr, L_Size); // 使用 NeighborPriorityQueue 的初始化函数
+    scratch->best_L_nodes = (NeighborPriorityQueue *)malloc(sizeof(NeighborPriorityQueue));
+    init_queue(scratch->best_L_nodes, L_Size); // 使用 NeighborPriorityQueue 的初始化函数
+
+    scratch->entry_point = (size_t*)malloc(sizeof(size_t));
+    scratch->entry_point = entry_point;
+    scratch->max_point = (size_t*)malloc(sizeof(size_t));
+    scratch->max_point = vector_capacity;
 }
 
 // 清理 Scratch 结构体占用的内存
 void free_scratch(Scratch *scratch)
 {
-    free(scratch->vector_ptr);      // 释放 MyVector 内存
-    free(scratch->bit_array_ptr);   // 释放 bit_array 内存
-    free_queue(scratch->queue_ptr); // 释放 NeighborPriorityQueue 内存
-    free(scratch->queue_ptr);       // 释放结构体内存
+    free(scratch->expanded_nodes);      // 释放 MyVector 内存
+    free(scratch->is_visited);   // 释放 bit_array 内存
+    free_queue(scratch->best_L_nodes); // 释放 NeighborPriorityQueue 内存
+    free(scratch->best_L_nodes);       // 释放结构体内存
 }
 
 #endif // SCRATCH_H
