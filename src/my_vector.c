@@ -11,7 +11,7 @@ void vector_init(MyVector *vec)
 {
     vec->size = 0;
     vec->capacity = VECTOR_INITIAL_CAPACITY;
-    vec->data = (int *)malloc(vec->capacity * sizeof(int)); // 分配内存
+    vec->data = (int32_t *)malloc(vec->capacity * sizeof(int32_t)); // 分配内存
     if (vec->data == NULL)
     {
         fprintf(stderr, "Memory allocation failed\n");
@@ -22,7 +22,7 @@ void vector_init(MyVector *vec)
 // 扩展向量容量
 void vector_resize(MyVector *vec, size_t new_capacity)
 {
-    int *new_data = (int *)realloc(vec->data, new_capacity * sizeof(int));
+    int32_t *new_data = (int32_t *)realloc(vec->data, new_capacity * sizeof(int32_t));
     if (new_data == NULL)
     {
         fprintf(stderr, "Memory reallocation failed\n");
@@ -34,7 +34,7 @@ void vector_resize(MyVector *vec, size_t new_capacity)
 }
 
 // 插入元素
-void vector_push_back(MyVector *vec, int value)
+void vector_push_back(MyVector *vec, int32_t value)
 {
     if (vec->size == vec->capacity)
     {
@@ -55,7 +55,7 @@ void vector_pop_back(MyVector *vec)
 }
 
 // 获取向量元素
-int vector_get(MyVector *vec, size_t index)
+int32_t vector_get(MyVector *vec, size_t index)
 {
     if (index >= vec->size)
     {
@@ -66,7 +66,7 @@ int vector_get(MyVector *vec, size_t index)
 }
 
 // 设置向量元素
-void vector_set(MyVector *vec, size_t index, int value)
+void vector_set(MyVector *vec, size_t index, int32_t value)
 {
     if (index >= vec->size)
     {

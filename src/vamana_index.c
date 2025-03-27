@@ -303,7 +303,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
             nn.id = neighbor_id;
             nn.distance = distance;
             priority_queue_insert(L_nodes, nn); // 将邻居加入候选集
-            //elog(INFO, "neighbor_id: %u, distance: %f", neighbor_id, distance);
+            // elog(INFO, "neighbor_id: %u, distance: %f", neighbor_id, distance);
         }
     }
     for (size_t i = 0; i < L_nodes->size; i++)
@@ -313,14 +313,46 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
     }
 }
 
-// 示例函数：修剪邻居
-void prune_neighbors(uint32_t location, Neighbor *pool, size_t pool_size, uint32_t *pruned_list)
+void occlude_list(uint32_t location, float alpha, uint32_t *pruned_list, uint32_t max_candidate_size)
 {
-    // 模拟修剪邻居，选择最近的邻居
-    for (size_t i = 0; i < pool_size; i++)
+    // 函数功能
+    // 从一个距离排好序的候选邻居池中选择最多 degree 个邻居。
+    // 使用 alpha 控制遮蔽机制，避免保留冗余或过于密集的邻居（提升图质量）。
+    // 输出选中的节点id
+
+    // 1.裁断候选集为maxc，即L
+
+    // 2.每个邻居都有一个 occlude_factor（遮蔽因子），初始为0。后续会根据其他邻居的遮蔽影响逐渐升高。
+
+    // 3.迭代遮蔽过程
+    // 进行多轮迭代，每轮的 cur_alpha 增大 1.2 倍。
+    // 每轮试图选出一部分邻居，如果其 occlude_factor < cur_alpha，则可以保留。
+
+    // 4.遍历候选邻居
+    // 如果当前候选点被遮蔽程度太高（>cur_alpha），则跳过。
+    // 否则加入 result，并将其遮蔽因子设为 float ::max，防止重复选入。
+    // 然后更新它之后的邻居的 occlude_factor，表示它对后续点构成了“遮蔽”。
+}
+
+// 示例函数：修剪邻居
+void prune_neighbors(uint32_t location, Scratch *scratch, uint32_t *pruned_list, const uint32_t max_candidate_size, float alpha)
+{
+    // 空池直接返回
+    if (scratch->expanded_nodes->size == 0)
     {
-        pruned_list[i] = pool[i].id;
+        return;
     }
+
+    // 使用pg_dist，距离重新计算
+
+    // 对expanded_nodes排序
+
+    // 清空并预留空间
+
+    // 进行剪枝操作
+    // occlude_list
+
+    // 图饱和处理
 }
 
 // 搜索节点 加入候选集
@@ -329,10 +361,10 @@ void search_for_point_and_prune(Scratch *scratch, float *pivots_data, uint32_t *
 
     // 执行固定点迭代 主要工作 从起始点开始，BFS，计算经过的点和距离加入pool
     iterate_to_fixed_point(scratch, pivots_data, compressed_vectors, neighbours, Lindex, query_vec);
-    //exit(0);
+    // exit(0);
 
     // 在最优候选集里面去除自己
-    for(size_t i = 0; i < scratch->expanded_nodes->size; i++)
+    for (size_t i = 0; i < scratch->expanded_nodes->size; i++)
     {
         if (scratch->expanded_nodes->data[i] == location)
         {
@@ -345,21 +377,10 @@ void search_for_point_and_prune(Scratch *scratch, float *pivots_data, uint32_t *
         }
     }
 
-    // for (size_t i = 0; i < scratch->pool_size; i++)
-    // {
-    //     if (scratch->pool[i].id == location)
-    //     {
-    //         for (size_t j = i; j < scratch->pool_size - 1; j++)
-    //         {
-    //             scratch->pool[j] = scratch->pool[j + 1];
-    //         }
-    //         scratch->pool_size--;
-    //         i--;
-    //     }
-    // }
-
     // 调用修剪邻居
-    // prune_neighbors(location, scratch->pool, scratch->pool_size, pruned_list);
+    float alpha = 1;
+    uint32_t max_candidate_size = 50;
+    prune_neighbors(location, scratch, pruned_list, 50, alpha);
 }
 
 // 设置邻居
@@ -372,7 +393,11 @@ void set_neighbours(uint32_t node, uint32_t *neighbors, uint32_t R)
 // 插入新边
 void inter_insert(uint32_t node, uint32_t *pruned_list)
 {
-    // 这里实现互相插入邻居
+    // `inter_insert` 函数的目的是将查询点 `n` 作为新的邻居插入到它的邻居节点的邻居池中（即 `pruned_list` 中的邻居）。
+    // 如果目标节点的邻居池已满，
+    // 函数会创建副本并进行剪枝，确保每个节点的邻居池不会过大，并且通过距离和其他准则优化邻居池。
+    // 在操作过程中，为了确保线程安全，函数使用了锁来保护对邻居池的修改。
+    // 最终，剪枝后的新邻居池会被写回到 `_graph_store` 中。
     elog(INFO, "Inter-inserting neighbors for node %u", node);
 }
 
@@ -396,7 +421,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     // 3.调用遮挡剪枝
     // 4. 饱和度补充
 
-    // 
+    //
 
     size_t i;
     size_t entry_point = calculate_entry(num_points);
@@ -491,7 +516,7 @@ void build(const char *compressed_vec_file, const char *pivots_file, uint32_t R,
         return;
     }
 
-    // 生成随机邻居 
+    // 生成随机邻居
     uint32_t *neighbors = (uint32_t *)palloc(num_points * R * sizeof(uint32_t));
     generate_random_neighbors(num_points, R, neighbors);
 
