@@ -32,7 +32,8 @@
 
 #include "diskann.h"
 #include "vamana_index.h"
-
+#include "new_vector.h"
+#include "my_vector.h"
 #if PG_VERSION_NUM >= 160000
 #include "varatt.h"
 #endif
@@ -1467,14 +1468,76 @@ Datum test_vamana(PG_FUNCTION_ARGS)
 PG_FUNCTION_INFO_V1(test_neighbours);
 Datum test_neighbours(PG_FUNCTION_ARGS)
 {
-	uint32_t R = 10;
-	uint32_t *neighbours = (uint32_t *)palloc(1000 * R * sizeof(uint32_t));
-	generate_random_neighbors(1000, R, neighbours);
-	for(uint32_t i = 0; i < R; i++){
-		uint32_t neighbor_id = neighbours[5 * R + i];
-		elog(INFO, "the first neighbour is %d", neighbor_id);
+	uint32_t R = 5;
+	uint32_t num_point = 10;
+	// uint32_t *neighbours = (uint32_t *)palloc(1000 * R * sizeof(uint32_t));
+	// generate_random_neighbors(1000, R, neighbours);
+	// pfree(neighbours);
+
+	NewVector *result = (NewVector *)palloc(sizeof(NewVector));
+	generate_random_neighbors_for_vector(result, num_point, R);
+	// my2d_vector_init(&result, 1000, 3);
+	for (int i = 0; i < num_point; i++)
+	{
+		NewVector *cur_vec = (NewVector *)new_vector_get(result, i);
+		for (int j = 0; j < R; j++)
+		{
+			uint32_t *val = new_vector_get(cur_vec, j);
+			elog(INFO, "posi:%d,posj:%d,value:%d", i, j, *val);
+		}
 	}
-	pfree(neighbours);
+	NewVector *cur_vec = (NewVector *)new_vector_get(result, 0);
+
+	// resize bigger data not changed
+	size_t new_sizeee = 9;
+	new_vector_reserve(cur_vec, new_sizeee);
+	for (uint32_t j = 0; j < cur_vec->size; j++)
+	{
+		uint32_t *val = new_vector_get(cur_vec, j);
+		elog(INFO, " resize bigger data not changed pos:%d,value:%d", j, *val);
+	}
+
+	// resize smaller
+	new_vector_reserve(cur_vec, 3);
+	NewVector *new_vec = (NewVector *)palloc(sizeof(NewVector));
+	new_vector_init_with_capacity(new_vec, sizeof(uint32_t), 10);
+	for (uint32_t i = 0; i < new_vec->capacity; i++)
+	{
+		new_vector_push_back(new_vec, &i);
+	}
+	elog(INFO, "new_vec size:%d", new_vec->size);
+	for (uint32_t j = 0; j < new_vec->size; j++)
+	{
+		uint32_t *val = new_vector_get(new_vec, j);
+		elog(INFO, "new_vec pos:%d,value:%d", j, *val);
+	}
+	memcpy(cur_vec->data, new_vec->data, 9 * sizeof(uint32_t));
+	memcpy((char *)cur_vec->data, (char *)new_vec->data, 9 * sizeof(uint32_t));
+	for (uint32_t j = 0; j < cur_vec->size; j++)
+	{
+		uint32_t *val = new_vector_get(cur_vec, j);
+		elog(INFO, "pos:%d,value:%d", j, *val);
+	}
+
+	new_vector_reserve(cur_vec, new_vec->size);
+	new_vector_resize(cur_vec, new_vec->size);
+	memcpy((char *)cur_vec->data, (char *)new_vec->data, 9 * sizeof(uint32_t));
+	for (int j = 0; j < cur_vec->size; j++)
+	{
+		uint32_t *val = new_vector_get(cur_vec, j);
+		elog(INFO, "pos:%d,value:%d", j, *val);
+	}
+
+	new_vector_free(new_vec);
+
+	// uint32_t *bit_array = (uint32_t *)calloc(R, sizeof(uint32_t));
+	// set_bit(bit_array, 5);
+	// elog(INFO, "bit_array[5] = %d", test_bit(bit_array, 5));
+	// clear_bit(bit_array, 5);
+	// elog(INFO, "bit_array[5] = %d", test_bit(bit_array, 5));
+
+	// 测试set_neighbor
+
 	elog(INFO, "Hello, Neighbours!");
 	PG_RETURN_NULL();
 }

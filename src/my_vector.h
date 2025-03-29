@@ -15,6 +15,8 @@ typedef struct
 // 初始化向量
 void vector_init(MyVector *vec);
 
+void vector_init_with_capacity(MyVector *vec, size_t capacity);
+
 // 插入元素
 void vector_push_back(MyVector *vec, int32_t value);
 
@@ -29,5 +31,7 @@ void vector_set(MyVector *vec, size_t index, int32_t value);
 
 // 清理内存
 void vector_free(MyVector *vec);
+
+int32_t vector_find(MyVector *vec, int32_t value);
 
 #endif

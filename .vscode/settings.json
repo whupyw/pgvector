@@ -17,6 +17,12 @@
         "iostream": "c",
         "vector": "c",
         "initializer_list": "c",
-        "utility": "c"
+        "utility": "c",
+        "new_vector.h": "c",
+        "float.h": "c",
+        "my_vector.h": "c",
+        "stdbool.h": "c",
+        "bit_array.h": "c",
+        "string.h": "c"
     }
 }

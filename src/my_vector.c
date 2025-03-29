@@ -19,6 +19,18 @@ void vector_init(MyVector *vec)
     }
 }
 
+void vector_init_with_capacity(MyVector *vec, size_t capacity)
+{
+    vec->size = 0;
+    vec->capacity = capacity;
+    vec->data = (int32_t *)malloc(vec->capacity * sizeof(int32_t)); // 分配内存
+    if (vec->data == NULL)
+    {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
+}
+
 // 扩展向量容量
 void vector_resize(MyVector *vec, size_t new_capacity)
 {
@@ -74,6 +86,22 @@ void vector_set(MyVector *vec, size_t index, int32_t value)
         exit(1);
     }
     vec->data[index] = value;
+}
+
+int32_t vector_find(MyVector *vec, int32_t value)
+{
+    // 遍历向量中的元素
+    for (size_t i = 0; i < vec->size; ++i)
+    {
+        // 如果找到元素，返回该元素的索引
+        if (vec->data[i] == value)
+        {
+            return i;
+        }
+    }
+
+    // 如果未找到，返回 -1
+    return -1;
 }
 
 // 清理内存
