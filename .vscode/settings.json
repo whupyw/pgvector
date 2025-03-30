@@ -23,6 +23,8 @@
         "my_vector.h": "c",
         "stdbool.h": "c",
         "bit_array.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "memutils.h": "c",
+        "stdint.h": "c"
     }
 }

@@ -34,6 +34,7 @@
 #include "vamana_index.h"
 #include "new_vector.h"
 #include "my_vector.h"
+#include "store_index.h"
 #if PG_VERSION_NUM >= 160000
 #include "varatt.h"
 #endif
@@ -1329,7 +1330,7 @@ Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
 	snprintf(create_table_sql, sizeof(create_table_sql),
 			 "CREATE TABLE IF NOT EXISTS vectors ("
 			 "id SERIAL PRIMARY KEY,"
-			 "embedding vector(128))");
+			 "embedding vector(128),neighbors integer[])");
 
 	if (SPI_execute(create_table_sql, false, 0) != SPI_OK_UTILITY)
 	{
@@ -1539,5 +1540,13 @@ Datum test_neighbours(PG_FUNCTION_ARGS)
 	// 测试set_neighbor
 
 	elog(INFO, "Hello, Neighbours!");
+	PG_RETURN_NULL();
+}
+
+PG_FUNCTION_INFO_V1(test_func);
+Datum test_func(PG_FUNCTION_ARGS)
+{
+	elog(INFO, "Hello, Fun!");
+	save_neighbors_to_disk();
 	PG_RETURN_NULL();
 }

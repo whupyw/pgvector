@@ -17,7 +17,7 @@
 #include <stdint.h>
 #include <errno.h>
 #include "vamana_index.h"
-
+#include "store_index.h"
 #define MAX_PARAM_COUNT 9
 
 #define NUM_PQ_CENTROIDS 256
