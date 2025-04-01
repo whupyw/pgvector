@@ -29,6 +29,9 @@ int32_t vector_get(MyVector *vec, size_t index);
 // 设置向量元素
 void vector_set(MyVector *vec, size_t index, int32_t value);
 
+// 清除所有元素，保留内存
+void vector_clear(MyVector *vec);
+
 // 清理内存
 void vector_free(MyVector *vec);
 

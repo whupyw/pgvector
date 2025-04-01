@@ -4,13 +4,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "my_vector.h"
+
+extern const NewVector *static_neighbors_vectors;
+
 bool create_disk_laylout()
 {
-    // 获得邻居
-    // 将邻居填入表中
+    elog(INFO, "create disk layout");
+    bool ret = save_neighbors_to_disk(static_neighbors_vectors);
+    return ret;
 }
 
-bool save_neighbors_to_disk()
+bool save_neighbors_to_disk(NewVector *neighbors)
 {
     // 连接到 PostgreSQL 内部 SPI 上下文
     if (SPI_connect() != SPI_OK_CONNECT)
@@ -18,12 +22,6 @@ bool save_neighbors_to_disk()
         elog(ERROR, "SPI_connect failed");
         return false;
     }
-
-    // 假设二维数组 `neighbors_array` 存储了需要更新的邻居数据
-    int neighbors_array[3][3] = {
-        {1, 2, 3},
-        {4, 5, 6},
-        {7, 8, 9}};
 
     // 获取数据表中记录的数量（例如：3 行数据）
     const char *select_query = "SELECT id FROM vectors"; // 假设我们根据 `id` 来更新
@@ -43,10 +41,10 @@ bool save_neighbors_to_disk()
         SPI_finish();
         return false;
     }
-    // 记录所有id
+    // 记录所有id 1->numpoint
     MyVector *ids = (MyVector *)palloc(sizeof(MyVector));
     vector_init(ids);
-    for(size_t i = 0; i < npts; i++)
+    for (size_t i = 0; i < npts; i++)
     {
         bool isnull = false;
         HeapTuple tuple = SPI_tuptable->vals[i];
@@ -61,15 +59,27 @@ bool save_neighbors_to_disk()
     // 遍历每一条记录，根据 `id` 更新邻居
     for (size_t i = 0; i < npts; i++)
     {
-       // 获取当前记录的 `id`
+        // 获取当前记录的 `id` id = 1 i = 0
         uint32_t id = vector_get(ids, i);
         // 假设二维数组 `neighbors_array` 中每行数据对应于一个记录的邻居
         // 构建邻居数组字符串
         char array_string[100];
-        snprintf(array_string, sizeof(array_string), "%d,%d,%d", neighbors_array[i][0], neighbors_array[i][1], neighbors_array[i][2]);
-
+        array_string[0] = '\0'; // 初始化空字符串，确保之前的内容被清空
+        // snprintf(array_string, sizeof(array_string), "%d,%d,%d", neighbors_array[i][0], neighbors_array[i][1], neighbors_array[i][2]);
+        NewVector *cur_node_neighbors = new_vector_get(neighbors, i);
+        for (size_t j = 0; j < cur_node_neighbors->size; j++)
+        {
+            if (j > 0)
+            {
+                strcat(array_string, ",");
+            }
+            uint32_t *cur_node_neighbor = new_vector_get(cur_node_neighbors, j);
+            char neighbor_string[32]; // 假设 uint32_t 足够小，不会超过 32 个字符
+            snprintf(neighbor_string, sizeof(neighbor_string), "%u", *cur_node_neighbor);
+            strcat(array_string, neighbor_string);
+        }
         char query[256];
-        snprintf(query, sizeof(query), "UPDATE vectors SET neighbor = ARRAY[%s] WHERE id = %d", array_string, id);
+        snprintf(query, sizeof(query), "UPDATE vectors SET neighbors = ARRAY[%s] WHERE id = %d", array_string, id);
         elog(INFO, "Executing query: %s", query);
 
         // 执行更新操作

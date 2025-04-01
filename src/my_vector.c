@@ -104,6 +104,12 @@ int32_t vector_find(MyVector *vec, int32_t value)
     return -1;
 }
 
+// 清除所有元素，保留内存
+void vector_clear(MyVector *vec)
+{
+    vec->size = 0;
+}
+
 // 清理内存
 void vector_free(MyVector *vec)
 {

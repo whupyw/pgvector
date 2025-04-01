@@ -103,12 +103,12 @@ void generate_random_neighbors(uint32_t num_points, uint32_t R, uint32_t *neighb
 }
 
 // 为每个向量生成 R 个唯一的随机邻居（不包含自身）
-void generate_random_neighbors_for_vector(NewVector *vec, uint32_t num_points, uint32_t R)
+bool generate_random_neighbors_for_vector(NewVector *vec, uint32_t num_points, uint32_t R)
 {
     if (R >= num_points)
     {
         printf("R 必须小于 num_points。\n");
-        return;
+        return false;
     }
     new_vector_init(vec, sizeof(NewVector)); // 初始化二维数组，元素是行
 
@@ -152,6 +152,27 @@ void generate_random_neighbors_for_vector(NewVector *vec, uint32_t num_points, u
 
         free(used);
     }
+    return true;
+}
+
+// 为每个向量生成 R 个唯一的随机邻居（不包含自身）
+bool generate_random_neighbors_for_vector_empty(NewVector *vec, uint32_t num_points, uint32_t R)
+{
+    if (R >= num_points)
+    {
+        printf("R 必须小于 num_points。\n");
+        return false;
+    }
+    new_vector_init(vec, sizeof(NewVector)); // 初始化二维数组，元素是行
+
+    for (size_t i = 0; i < num_points; i++)
+    {
+        NewVector *row = (NewVector *)palloc(sizeof(NewVector)); // 创建每一行
+        new_vector_init(row, sizeof(uint32_t));                  // 每行是一个NewVector，元素类型是Element
+        // 将行添加到矩阵中
+        new_vector_push_back(vec, row);
+    }
+    return true;
 }
 
 // 计算搜索起始点的函数
@@ -274,45 +295,22 @@ void get_vec_from_vectors(float *vectors, uint32_t location, float *vector, uint
 }
 
 // 初始化候选池并开始搜索
-/*
- * Performs iterative search to find nearest neighbors using Vamana graph index.
- *
- * This function implements the core graph traversal algorithm of Vamana index.
- * Starting from an initial node, it iteratively explores neighbors to find the
- * closest points to the target vector, using a priority queue to maintain the
- * best L candidates found so far.
- *
- * @param scratch          Workspace for temporary data structures
- * @param pivots_data     Pivot vectors for compressed data reconstruction
- * @param compressed_vectors Compressed vector data
- * @param neighbours      Graph adjacency lists
- * @param LSize          Size of candidate pool to maintain
- * @param init_id        Initial node ID to start search from
- * @param target_vector  Query vector to find neighbors for
- */
 void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *compressed_vectors, uint32_t *neighbours, uint32_t LSize, float *target_vector)
 {
     // 1.初始化操作
     // 记录已访问的节点
     // 存储当前最优的L个邻居
-    // 使用bitset
+
+    // 邻居集大小
     uint32_t R = 10;
     // 候选集
     NeighborPriorityQueue *L_nodes = scratch->best_L_nodes;
-    // init_queue(&L_nodes, LSize);
-    //  读取向量个数
-    uint32_t max_points = 25000; // 最大节点数
-    size_t num_bits = 100;       // 需要存储 100 位
-    size_t num_ints = (num_bits + 31) / 32;
-    size_t init_id = scratch->entry_point;      // 计算需要多少 uint32_t
-    uint32_t *is_visited = scratch->is_visited; // 创建一个 bit 数组并初始化为0
-                                                // 已扩展的节点列表
+    // 起始点
+    size_t init_id = scratch->entry_point;
+    // 已访问节点
+    uint32_t *is_visited = scratch->is_visited;
+    // 已扩展的邻域
     NewVector *expanded_nodes = scratch->expanded_nodes;
-    // 申请内存用于存储已访问邻居
-    // id_和 dist_临时存储 ID 和距离数据，用于计算节点之间的距离。
-    // uint32_t *id_scratch = (uint32_t *)palloc(sizeof(uint32_t) * 1024); // 估计大小
-    // float *dist_scratch = (float *)palloc(sizeof(float) * 1024);        // 估计大小
-
     // 2.处理初始节点
 
     // 从 init_ids 中取出初始节点 ID，计算与查询向量的距离，并将其加入到 best_L_nodes 队列中。
@@ -325,33 +323,35 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
     // 将初始节点加入候选集
     float *init_vector = (float *)palloc(sizeof(float) * 128);
     get_vec_from_compressed_data(compressed_vectors, pivots_data, init_id, init_vector, 8, 128); // 计算距离
-    float distance = get_distance(init_vector, target_vector, 128);                              // 计算距离
+    float distance = get_distance(init_vector, target_vector, 128);
+    pfree(init_vector); // 计算距离
     Neighbor nn;
     nn.id = init_id;
     nn.distance = distance;
     priority_queue_insert(L_nodes, nn); // 将初始节点加入候选集
 
     // 用来存储搜索邻居的结果
-    // uint32_t *cur_node_neighbors = (uint32_t *)palloc(sizeof(uint32_t) * R); // 估计大小
-    // float *neighbours_distances = (float*)palloc(sizeof(float)*R); // 估计大小
-
     MyVector *id_scratch = (MyVector *)palloc(sizeof(MyVector));
     vector_init(id_scratch);
     MyVector *dist_scratch = (MyVector *)palloc(sizeof(MyVector));
     vector_init(dist_scratch);
 
-    // 3.迭代过程 图搜索过程
+    // 3.迭代过程 图搜索过程 获取候选集中未访问的节点
     while (has_unexpanded_node(L_nodes))
     {
         // 获取当前未被扩展的第一个节点
         Neighbor cur_node = closest_unexpanded(L_nodes);
         new_vector_push_back(expanded_nodes, &cur_node); // 将节点加入已扩展列表
         float distance;
+        // 获取邻居
+        NewVector *cur_node_neighbours = new_vector_get(static_neighbors_vectors, cur_node.id);
 
         // 看看邻居是否在已访问列表中
-        for (uint32_t i = 0; i < R; i++)
+        for (uint32_t i = 0; i < cur_node_neighbours->size; i++)
         {
-            uint32_t neighbor_id = neighbours[cur_node.id * R + i];
+            uint32_t *neighbor_id_pointer = new_vector_get(cur_node_neighbours, i);
+            uint32_t neighbor_id = *neighbor_id_pointer;
+
             if (neighbor_id > scratch->max_point)
             {
                 elog(ERROR, "neighbor_id is out of range");
@@ -361,9 +361,12 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
             {
                 continue;
             }
-            set_bit(is_visited, neighbor_id); // 标记为已访问
+            else
+            {
+                set_bit(is_visited, neighbor_id); // 标记为已访问
+            }
 
-            // 计算距离
+            // 计算该节点和距离
             float *cur_vector = (float *)palloc(sizeof(float) * 128);
             get_vec_from_compressed_data(compressed_vectors, pivots_data, neighbor_id, cur_vector, 8, 128); // 计算距离
             distance = get_distance(cur_vector, target_vector, 128);
@@ -371,6 +374,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
             // neighbours_distances[i] = distance;
             vector_push_back(id_scratch, neighbor_id);
             vector_push_back(dist_scratch, distance);
+            pfree(cur_vector);
         }
 
         // 将邻居加入候选池
@@ -390,9 +394,13 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
         Neighbor nn = L_nodes->data[i];
         elog(INFO, "id: %u, distance: %f", nn.id, nn.distance);
     }
+    vector_free(id_scratch);
+    vector_free(dist_scratch);
+    pfree(id_scratch);
+    pfree(dist_scratch);
 }
 
-void occlude_list(Scratch *scratch, uint32_t location, float alpha, MyVector *pruned_list, uint32_t max_candidate_size, uint32_t R)
+void occlude_list(uint32_t location, NewVector *pool, float alpha, MyVector *pruned_list, uint32_t max_candidate_size, uint32_t R, Scratch *scratch)
 {
     // 函数功能
     // 从一个距离排好序的候选邻居池中选择最多 degree 个邻居。
@@ -400,7 +408,7 @@ void occlude_list(Scratch *scratch, uint32_t location, float alpha, MyVector *pr
     // 输出选中的节点id
 
     // 1.裁断候选集为maxc，即L
-    NewVector *pool = scratch->expanded_nodes;
+    // NewVector *pool = scratch->expanded_nodes;
     if (pool->size > max_candidate_size)
     {
         new_vector_truncate(pool, (size_t)max_candidate_size);
@@ -471,7 +479,7 @@ void occlude_list(Scratch *scratch, uint32_t location, float alpha, MyVector *pr
     }
 
     // 如果需要的话，可以清理内存
-    free(occlude_factor);
+    pfree(occlude_factor);
 }
 
 int compare_neighbor(const void *a, const void *b)
@@ -500,7 +508,8 @@ void prune_neighbors(uint32_t location, Scratch *scratch, MyVector *pruned_list,
 
     // 进行剪枝操作
     // uint32_t R = 10;
-    occlude_list(scratch, location, alpha, pruned_list, max_candidate_size, R);
+    NewVector *pool = scratch->expanded_nodes;
+    occlude_list(location, pool, alpha, pruned_list, max_candidate_size, R, scratch);
 
     // 图饱和处理
     bool _saturate_graph = true;
@@ -521,6 +530,50 @@ void prune_neighbors(uint32_t location, Scratch *scratch, MyVector *pruned_list,
     }
 }
 
+// 示例函数：修剪邻居
+void new_prune_neighbors(uint32_t location, NewVector *pool, MyVector *pruned_list, const uint32_t max_candidate_size, float alpha, uint32_t R, Scratch *scratch)
+{
+    // 空池直接返回
+    if (pool->size == 0)
+    {
+        vector_clear(pruned_list);
+        return;
+    }
+
+    // 使用pg_dist，距离重新计算
+
+    // 对expanded_nodes排序
+    // 距离小的放前面
+    // DEBUG
+    new_vector_sort(pool, compare_neighbor);
+
+    // 清空pruned_list并预留空间R
+    vector_clear(pruned_list);
+    vector_reserve(pruned_list, R);
+
+    // 进行剪枝操作
+    // uint32_t R = 10;
+    occlude_list(location, pool, alpha, pruned_list, max_candidate_size, R, scratch);
+
+    // 图饱和处理
+    bool _saturate_graph = true;
+    if (_saturate_graph && alpha > 1)
+    {
+        for (size_t i = 0; i < pool->size; i++)
+        {
+            if (pruned_list->size >= R)
+            {
+                break;
+            }
+            Neighbor *nn = new_vector_get(pool, i);
+            if (nn->id != location && vector_find(pruned_list, nn->id) != -1)
+            {
+                vector_push_back(pruned_list, nn->id);
+            }
+        }
+    }
+}
+
 // 搜索节点 加入候选集
 void search_for_point_and_prune(Scratch *scratch, float *pivots_data, uint32_t *compressed_vectors, uint32_t *neighbours, uint32_t location, uint32_t Lindex, MyVector *pruned_list, float *query_vec)
 {
@@ -530,6 +583,7 @@ void search_for_point_and_prune(Scratch *scratch, float *pivots_data, uint32_t *
     // exit(0);
 
     // 在最优候选集里面去除自己
+    // DEBUG
     for (size_t i = 0; i < scratch->expanded_nodes->size; i++)
     {
         Neighbor *cur_neighbor = new_vector_get(scratch->expanded_nodes, i);
@@ -545,15 +599,24 @@ void search_for_point_and_prune(Scratch *scratch, float *pivots_data, uint32_t *
         }
     }
 
+    if (pruned_list->size > 0)
+    {
+        elog(INFO, "pruned_list size %d", pruned_list->size);
+        assert(pruned_list->size == 0);
+    }
+
     // 调用修剪邻居
-    float alpha = 1;
-    uint32_t max_candidate_size = 50;
+    float alpha = 1.20000005;
+    // 最大遮蔽大小
+    uint32_t _indexingMaxC = 100;
     uint32_t R = 10;
-    prune_neighbors(location, scratch, pruned_list, 50, alpha, R);
+    // prune_neighbors(location, scratch, pruned_list, 50, alpha, R);
+    NewVector *pool = scratch->expanded_nodes;
+    new_prune_neighbors(location, pool, pruned_list, _indexingMaxC, alpha, R, scratch);
 }
 
 // 设置邻居
-void set_neighbours(uint32_t node, NewVector *neighbors)
+void set_neighbours(uint32_t node, MyVector *neighbors)
 {
     // 这里实现将邻接列表存入 PostgreSQL 数据表
     NewVector *des_neighbors = NULL;
@@ -574,29 +637,22 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
     // 最终，剪枝后的新邻居池会被写回到 `_graph_store` 中。
     elog(INFO, "Inter-inserting neighbors for node %u", node);
     uint32_t max_candidate_size = 20;
-    float alpha = 1;
 
     assert(pruned_list->size != 0);
     bool prune_needed = false;
     for (size_t des = 0; des < pruned_list->size; des++)
     {
-        uint32_t des = vector_get(pruned_list, des);
+        uint32_t des_id = vector_get(pruned_list, des);
         assert(des < scratch->max_point);
 
-        uint32_t *des_neighbor = NULL;
-        get_neighbors_pointer(des, R, static_neighbors, des_neighbor);
+        // 获取邻居
+        NewVector *des_neighbors = new_vector_get(static_neighbors_vectors, des_id);
         NewVector *copy_neighbors = NULL;
 
-        NewVector *des_neighbors = NULL;
-        des_neighbors = new_vector_get(static_neighbors_vectors, des);
         // 查找邻域里面有没有node
         bool isfound = false;
         for (uint32_t i = 0; i < des_neighbors->size; i++)
         {
-            // if (des_neighbor[i] == node)
-            // {
-            //     isfound = true;
-            // }
             uint32_t *cur_node_pointer = new_vector_get(des_neighbors, i);
             uint32_t cur_node = *cur_node_pointer;
             if (cur_node == node)
@@ -619,7 +675,7 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
                 // 将node加入到des的邻居
                 copy_neighbors = (NewVector *)palloc(sizeof(NewVector));
                 vector_init(copy_neighbors);
-                for (size_t i = 0; i < R; i++)
+                for (size_t i = 0; i < des_neighbors->size; i++)
                 {
                     uint32_t *cur_node_pointer = new_vector_get(des_neighbors, i);
                     uint32_t cur_node = *cur_node_pointer;
@@ -636,8 +692,6 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
         {
             size_t reserveSize = (size_t)ceil(GRAPH_SLACK_FACTOR * R);
             // 已访问列表
-            // MyVector *dummy_visited = (MyVector *)palloc(sizeof(MyVector));
-            // vector_init_with_capacity(dummy_visited, reserveSize);
             size_t dummy_visited_size = (size_t)ceil(reserveSize / 32);
             uint32_t *dummy_visited = (uint32_t *)calloc(dummy_visited_size, sizeof(uint32_t));
             NewVector *dummy_pool = (NewVector *)palloc(sizeof(NewVector));
@@ -653,14 +707,26 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
                     new_vector_push_back(dummy_pool, cur_node);
                     set_bit(dummy_visited, cur_node);
                 }
-                MyVector *new_out_neighbors = (MyVector *)palloc(sizeof(MyVector));
-                prune_neighbors(cur_node, scratch, dummy_pool, max_candidate_size, alpha, R);
-
-                // set_neighbours
-                new_vector_reserve(des_neighbors, dummy_pool->size);
-                new_vector_resize(des_neighbors, dummy_pool->size);
-                memcpy((char *)des_neighbors->data, (char *)dummy_pool->data, dummy_pool->size * sizeof(uint32_t));
             }
+            MyVector *new_out_neighbors = (MyVector *)palloc(sizeof(MyVector));
+            // prune_neighbors(cur_node, scratch, new_out_neighbors, max_candidate_size, alpha, R);
+            float alpha = 1.20000005;
+            new_prune_neighbors(des, dummy_pool, new_out_neighbors, max_candidate_size, alpha, R, scratch);
+
+            // set_neighbours
+            new_vector_reserve(des_neighbors, dummy_pool->size);
+            new_vector_resize(des_neighbors, dummy_pool->size);
+            memcpy((char *)des_neighbors->data, (char *)dummy_pool->data, dummy_pool->size * sizeof(uint32_t));
+
+            new_vector_free(dummy_pool);
+            pfree(dummy_pool);
+            dummy_pool = NULL;
+            free(dummy_visited);
+        }
+        if (copy_neighbors)
+        {
+            new_vector_free(copy_neighbors);
+            pfree(copy_neighbors);
         }
     }
 }
@@ -688,6 +754,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     //
 
     size_t i;
+    // 要存储初始点
     size_t entry_point = calculate_entry(num_points);
 
     // 遍历列表
@@ -695,15 +762,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     {
 
         Scratch *scratch = (Scratch *)palloc(sizeof(Scratch));
-        init_scratch(scratch, num_points, L, entry_point);
-        // 这个pruned_list 全部初始化为0
-        // 但是我们迭代是从0开始，
-        // 所以在pruned_list中，节点的最小编号是1
-        // uint32_t *pruned_list = (uint32_t *)palloc0(R * sizeof(uint32_t));
-        // if (!pruned_list)
-        // {
-        //     elog(ERROR, "Memory allocation failed");
-        // }
+        init_scratch(scratch, num_points, L, entry_point, i);
         MyVector *pruned_list = (MyVector *)palloc(sizeof(MyVector));
         vector_init(pruned_list);
         float *query = (float *)palloc(sizeof(float) * dim);
@@ -711,15 +770,15 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
 
         search_for_point_and_prune(scratch, pivots_data, compressed_vectors, neighbours, i, L, pruned_list, query);
 
-#pragma omp critical
-        {
-            set_neighbours(i, pruned_list);
-        }
+        // #pragma omp critical
+
+        set_neighbours(i, pruned_list);
 
         inter_insert(i, pruned_list, R, scratch);
 
         pfree(pruned_list);
         pfree(query);
+        free_scratch(scratch);
         pfree(scratch);
     }
 
@@ -731,6 +790,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
         NewVector *cur_neighbors = NULL;
         cur_neighbors = new_vector_get(static_neighbors_vectors, i);
         Scratch *scratch = (Scratch *)palloc(sizeof(Scratch));
+        init_scratch(scratch, num_points, L, entry_point, i);
         if (cur_neighbors->size > R)
         {
             // 已访问列表
@@ -744,18 +804,21 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
                 uint32_t *cur_node_pointer = new_vector_get(cur_neighbors, j);
                 uint32_t cur_node = *cur_node_pointer;
                 // 如果节点不在已访问列表中 且不是自身
-                if (test_bit(dummy_visited, cur_node) && cur_node != i)
+                if (!test_bit(dummy_visited, cur_node) && cur_node != i)
                 {
                     float dist = get_distance_by_id(i, cur_node);
-                    new_vector_push_back(dummy_pool, cur_node);
+                    new_vector_push_back(dummy_pool, cur_node_pointer);
                     set_bit(dummy_visited, cur_node);
                 }
             }
-            prune_neighbors(i, scratch, dummy_pool, L, 1.0, R);
+            float alpha = 1.20000005;
+            // prune_neighbors(i, scratch, dummy_pool, L, 1.0, R);
+            new_prune_neighbors(i, dummy_pool, new_out_neighbors, L, alpha, R, scratch);
             set_neighbours(i, new_out_neighbors);
             pfree(dummy_pool);
-            pfree(dummy_visited);
+            free(dummy_visited);
             pfree(new_out_neighbors);
+            free_scratch(scratch);
             pfree(scratch);
         }
 
@@ -806,13 +869,13 @@ void build(const char *compressed_vec_file, const char *pivots_file, uint32_t R,
     static_pivot_data = full_pivot_data;
 
     // 生成随机邻居
-    uint32_t *neighbors = (uint32_t *)palloc(num_points * R * sizeof(uint32_t));
-    generate_random_neighbors(num_points, R, neighbors);
+    uint32_t *neighbors = NULL;
     NewVector *neighbors_vectors = (NewVector *)palloc(sizeof(NewVector));
-    generate_random_neighbors_for_vector(neighbors_vectors, num_points, R);
+    // generate_random_neighbors_for_vector(neighbors_vectors, num_points, R);
+    generate_random_neighbors_for_vector_empty(neighbors_vectors, num_points, R);
     static_neighbors_vectors = neighbors_vectors;
     vamana_link(full_pivot_data, compressed_data, neighbors, dim, num_points, R, L, num_threads);
-    pfree(neighbors);
+    // pfree(neighbors);
 }
 
 int build_merged_vamana_index(const char *pivots_data, const char *compressed_vec, double ram_budget, uint32_t R, uint32_t L, uint32_t num_threads, uint32_t base_num, uint32_t base_dim)

@@ -1457,7 +1457,7 @@ Datum test_vamana(PG_FUNCTION_ARGS)
 	const char *dataFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_learn.fbin";
 	const char *indexFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test";
 	// L=50,R=64,C=200
-	const char *buildParams = "10 64 200 1 1";
+	const char *buildParams = "10 20 200 1 1";
 	enum diskann_metric_t metric = DISKANN_L2; // 假设使用 L2 作为度量方式
 	int use_opq = false;					   // 启用 OPQ
 	const char *codebookPrefix = "/path/to/codebook";
@@ -1546,7 +1546,24 @@ Datum test_neighbours(PG_FUNCTION_ARGS)
 PG_FUNCTION_INFO_V1(test_func);
 Datum test_func(PG_FUNCTION_ARGS)
 {
-	elog(INFO, "Hello, Fun!");
-	save_neighbors_to_disk();
+	// NewVector *result = (NewVector *)palloc(sizeof(NewVector));
+	// generate_random_neighbors_for_vector(result, 3, 2);
+	// save_neighbors_to_disk(result);
+
+	NewVector *des_neighbors = (NewVector *)palloc(sizeof(NewVector));
+	MyVector *neighbors = (MyVector *)palloc(sizeof(MyVector));
+	new_vector_init(des_neighbors, sizeof(uint32_t));
+	vector_init(neighbors);
+	vector_push_back(neighbors, 1);
+	vector_push_back(neighbors, 2);
+	vector_push_back(neighbors, 3);
+	new_vector_reserve(des_neighbors, neighbors->size);
+	new_vector_resize(des_neighbors, neighbors->size);
+	memcpy((char *)des_neighbors->data, (char *)neighbors->data, neighbors->size * sizeof(uint32_t));
+	for(int i = 0; i < des_neighbors->size; i++)
+	{
+		uint32_t *val = new_vector_get(des_neighbors, i);
+		elog(INFO, "pos:%d,value:%d", i, *val);
+	}
 	PG_RETURN_NULL();
 }

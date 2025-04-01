@@ -2,8 +2,9 @@
 #define STORE_INDEX_H
 #include <stdbool.h>
 #include <stdint.h>
+#include "new_vector.h"
 bool create_disk_laylout();
 
-bool save_neighbors_to_disk();
+bool save_neighbors_to_disk(NewVector *neighbors);
 
 #endif

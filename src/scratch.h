@@ -14,10 +14,11 @@ typedef struct
     NeighborPriorityQueue *best_L_nodes; // 指向 NeighborPriorityQueue
     size_t *entry_point;
     size_t *max_point;
+    uint32_t cur_node;
 } Scratch;
 
 // 初始化 Scratch 结构体的方法
-void init_scratch(Scratch *scratch, size_t vector_capacity, size_t L_Size, size_t entry_point)
+void init_scratch(Scratch *scratch, size_t vector_capacity, size_t L_Size, size_t entry_point, uint32_t cur_node)
 {
     // 初始化 NewVector
     scratch->expanded_nodes = (NewVector *)malloc(sizeof(NewVector));
@@ -34,6 +35,8 @@ void init_scratch(Scratch *scratch, size_t vector_capacity, size_t L_Size, size_
     scratch->entry_point = entry_point;
     scratch->max_point = (size_t *)malloc(sizeof(size_t));
     scratch->max_point = vector_capacity;
+
+    scratch->cur_node = cur_node;
 }
 
 // 清理 Scratch 结构体占用的内存

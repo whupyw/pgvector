@@ -1,3 +1,4 @@
+#include "postgres.h"
 #include "new_vector.h"
 #include <stdlib.h>
 #include <string.h>
@@ -38,7 +39,11 @@ void new_vector_pop_back(NewVector *vec)
 
 void *new_vector_get(NewVector *vec, size_t index)
 {
-    assert(index < vec->size);
+    if (index >= vec->size){
+        elog(INFO, "index: %ld, size: %ld", index, vec->size);
+        assert(index < vec->size);
+    }
+        
     return (char *)vec->data + index * vec->elem_size;
 }
 

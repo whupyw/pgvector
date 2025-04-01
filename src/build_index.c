@@ -643,7 +643,7 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
 
     elog(INFO, "Check if file exists: %s", pq_pivots_path);
     /* Check if file exists */
-    if (!file_exists(pq_pivots_path))
+    if (file_exists(pq_pivots_path))
     {
         elog(INFO, "PQ pivot file exists. Not generating again");
         MemoryContextSwitchTo(oldcontext);
@@ -764,7 +764,7 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
     float *block_data_tmp;
     size_t num_blocks;
     size_t block;
-
+    size_t tmp_ndims;
     read_blk_size = 64 * 1024 * 1024;
     base_reader = fopen(data_file, "rb");
     if (!base_reader)
@@ -775,7 +775,9 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
 
     fread(&npts32, sizeof(uint32_t), 1, base_reader);
     fread(&basedim32, sizeof(uint32_t), 1, base_reader);
+    // 向量数量根据数据库来定
     num_points = (size_t)npts32;
+    get_vector_data_param("vectors", "embedding", &num_points, &tmp_ndims);
     dim = (size_t)basedim32;
 
     ctx = AllocSetContextCreate(CurrentMemoryContext,
