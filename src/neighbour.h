@@ -122,7 +122,7 @@ void clear_queue(NeighborPriorityQueue *queue)
 // Free the allocated memory
 void free_queue(NeighborPriorityQueue *queue)
 {
-    free(queue->data);
+    pfree(queue->data);
 }
 
 #endif

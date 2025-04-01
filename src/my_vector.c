@@ -11,7 +11,7 @@ void vector_init(MyVector *vec)
 {
     vec->size = 0;
     vec->capacity = VECTOR_INITIAL_CAPACITY;
-    vec->data = (int32_t *)malloc(vec->capacity * sizeof(int32_t)); // 分配内存
+    vec->data = (uint32_t *)malloc(vec->capacity * sizeof(uint32_t)); // 分配内存
     if (vec->data == NULL)
     {
         fprintf(stderr, "Memory allocation failed\n");
@@ -23,7 +23,7 @@ void vector_init_with_capacity(MyVector *vec, size_t capacity)
 {
     vec->size = 0;
     vec->capacity = capacity;
-    vec->data = (int32_t *)malloc(vec->capacity * sizeof(int32_t)); // 分配内存
+    vec->data = (uint32_t *)malloc(vec->capacity * sizeof(uint32_t)); // 分配内存
     if (vec->data == NULL)
     {
         fprintf(stderr, "Memory allocation failed\n");
@@ -32,9 +32,11 @@ void vector_init_with_capacity(MyVector *vec, size_t capacity)
 }
 
 // 扩展向量容量
-void vector_resize(MyVector *vec, size_t new_capacity)
+void vector_reserve(MyVector *vec, size_t new_capacity)
 {
-    int32_t *new_data = (int32_t *)realloc(vec->data, new_capacity * sizeof(int32_t));
+    if(vec->capacity == new_capacity)
+    return;
+    uint32_t *new_data = (uint32_t *)realloc(vec->data, new_capacity * sizeof(uint32_t));
     if (new_data == NULL)
     {
         fprintf(stderr, "Memory reallocation failed\n");
@@ -46,12 +48,12 @@ void vector_resize(MyVector *vec, size_t new_capacity)
 }
 
 // 插入元素
-void vector_push_back(MyVector *vec, int32_t value)
+void vector_push_back(MyVector *vec, uint32_t value)
 {
     if (vec->size == vec->capacity)
     {
         // 如果容量满了，扩展容量
-        vector_resize(vec, vec->capacity * 2);
+        vector_reserve(vec, vec->capacity * 2);
     }
     vec->data[vec->size] = value;
     vec->size++;
@@ -67,7 +69,7 @@ void vector_pop_back(MyVector *vec)
 }
 
 // 获取向量元素
-int32_t vector_get(MyVector *vec, size_t index)
+uint32_t vector_get(MyVector *vec, size_t index)
 {
     if (index >= vec->size)
     {
@@ -78,7 +80,7 @@ int32_t vector_get(MyVector *vec, size_t index)
 }
 
 // 设置向量元素
-void vector_set(MyVector *vec, size_t index, int32_t value)
+void vector_set(MyVector *vec, size_t index, uint32_t value)
 {
     if (index >= vec->size)
     {
@@ -88,7 +90,7 @@ void vector_set(MyVector *vec, size_t index, int32_t value)
     vec->data[index] = value;
 }
 
-int32_t vector_find(MyVector *vec, int32_t value)
+uint32_t vector_find(MyVector *vec, uint32_t value)
 {
     // 遍历向量中的元素
     for (size_t i = 0; i < vec->size; ++i)

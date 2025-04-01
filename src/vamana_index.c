@@ -262,10 +262,6 @@ float get_distance(float *vector1, float *vector2, size_t dim)
     return dist;
 }
 
-float get_distance_by_id(uint32_t vec_a, uint32_t vec_b)
-{
-}
-
 void get_vec_from_compressed_data(const float *compressed_data, float *pivots_data, uint32_t location, float *vector, uint32_t num_pq_chunks, uint32_t dim)
 {
     uint32_t *code = &compressed_data[location];
@@ -285,6 +281,20 @@ void get_vec_from_compressed_data(const float *compressed_data, float *pivots_da
         // 拷贝这个子向量到vector中对应位置
         memcpy(vector + chunk * subvector_dim, pivot, sizeof(float) * subvector_dim);
     }
+}
+
+float get_distance_by_id(uint32_t vec_a, uint32_t vec_b)
+{
+    // DEBUG
+    // 从压缩向量中获取向量聚类中心
+    // 再从码本中获取向量
+    float *vector_a = (float *)palloc(sizeof(float) * 128);
+    get_vec_from_compressed_data(static_compressed_data, static_pivot_data, vec_a, vector_a, 8, 128);
+
+    float *vector_b = (float *)palloc(sizeof(float) * 128);
+    get_vec_from_compressed_data(static_compressed_data, static_pivot_data, vec_b, vector_b, 8, 128);
+    float dist = get_distance(vector_a, vector_b, 128);
+    return dist;
 }
 
 void get_vec_from_vectors(float *vectors, uint32_t location, float *vector, uint32_t dim)
@@ -408,13 +418,16 @@ void occlude_list(uint32_t location, NewVector *pool, float alpha, MyVector *pru
     // 输出选中的节点id
 
     // 1.裁断候选集为maxc，即L
-    // NewVector *pool = scratch->expanded_nodes;
+    if (pool->size == 0)
+    {
+        return;
+    }
     if (pool->size > max_candidate_size)
     {
         new_vector_truncate(pool, (size_t)max_candidate_size);
     }
     // 2.每个邻居都有一个 occlude_factor（遮蔽因子），初始为0。后续会根据其他邻居的遮蔽影响逐渐升高。
-    float *occlude_factor = (float *)palloc0(pool->size * sizeof(float));
+    float *occlude_factor = (float *)palloc0((max_candidate_size + pool->size) * sizeof(float));
 
     // 3.迭代遮蔽过程
     // 进行多轮迭代，每轮的 cur_alpha 增大 1.2 倍。
@@ -522,7 +535,7 @@ void prune_neighbors(uint32_t location, Scratch *scratch, MyVector *pruned_list,
                 break;
             }
             Neighbor *nn = vector_get(scratch->expanded_nodes, i);
-            if (nn->id != location && vector_find(pruned_list, nn->id) != -1)
+            if (vector_find(pruned_list, nn->id) == -1 && nn->id != location)
             {
                 vector_push_back(pruned_list, nn->id);
             }
@@ -554,7 +567,7 @@ void new_prune_neighbors(uint32_t location, NewVector *pool, MyVector *pruned_li
     // 进行剪枝操作
     // uint32_t R = 10;
     occlude_list(location, pool, alpha, pruned_list, max_candidate_size, R, scratch);
-
+    assert(pruned_list->size <= R);
     // 图饱和处理
     bool _saturate_graph = true;
     if (_saturate_graph && alpha > 1)
@@ -566,7 +579,7 @@ void new_prune_neighbors(uint32_t location, NewVector *pool, MyVector *pruned_li
                 break;
             }
             Neighbor *nn = new_vector_get(pool, i);
-            if (nn->id != location && vector_find(pruned_list, nn->id) != -1)
+            if (vector_find(pruned_list, nn->id) != -1 && nn->id != location)
             {
                 vector_push_back(pruned_list, nn->id);
             }
@@ -636,12 +649,12 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
     // 在操作过程中，为了确保线程安全，函数使用了锁来保护对邻居池的修改。
     // 最终，剪枝后的新邻居池会被写回到 `_graph_store` 中。
     elog(INFO, "Inter-inserting neighbors for node %u", node);
-    uint32_t max_candidate_size = 20;
-
     assert(pruned_list->size != 0);
-    bool prune_needed = false;
+    uint32_t max_candidate_size = 100;
+
     for (size_t des = 0; des < pruned_list->size; des++)
     {
+        bool prune_needed = false;
         uint32_t des_id = vector_get(pruned_list, des);
         assert(des < scratch->max_point);
 
@@ -663,18 +676,19 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
         }
         if (!isfound)
         {
-            if (pruned_list->size < (size_t)(GRAPH_SLACK_FACTOR * R))
+            if (des_neighbors->size < (size_t)(GRAPH_SLACK_FACTOR * R))
             {
                 // 将node加入到des的邻居
-                NewVector *cur_neighbors = new_vector_get(static_neighbors_vectors, des);
-                new_vector_push_back(cur_neighbors, &node);
+                // NewVector *cur_neighbors = new_vector_get(static_neighbors_vectors, des);
+                new_vector_push_back(des_neighbors, &node);
                 prune_needed = false;
             }
             else
             {
-                // 将node加入到des的邻居
+                // 将node加入到des的邻居 并剪枝
+                // DEBUG
                 copy_neighbors = (NewVector *)palloc(sizeof(NewVector));
-                vector_init(copy_neighbors);
+                new_vector_init(copy_neighbors, sizeof(uint32_t));
                 for (size_t i = 0; i < des_neighbors->size; i++)
                 {
                     uint32_t *cur_node_pointer = new_vector_get(des_neighbors, i);
@@ -684,13 +698,14 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
                         vector_push_back(copy_neighbors, cur_node);
                     }
                 }
+                vector_push_back(copy_neighbors, node);
                 prune_needed = true;
             }
         }
 
         if (prune_needed)
         {
-            size_t reserveSize = (size_t)ceil(GRAPH_SLACK_FACTOR * R);
+            size_t reserveSize = (size_t)ceil(1.05 * GRAPH_SLACK_FACTOR * R);
             // 已访问列表
             size_t dummy_visited_size = (size_t)ceil(reserveSize / 32);
             uint32_t *dummy_visited = (uint32_t *)calloc(dummy_visited_size, sizeof(uint32_t));
@@ -701,10 +716,11 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
             {
                 uint32_t *cur_node_pointer = new_vector_get(copy_neighbors, i);
                 uint32_t cur_node = *cur_node_pointer;
-                if (test_bit(dummy_visited, cur_node) && cur_node != node)
+                if (!test_bit(dummy_visited, cur_node) && cur_node != node)
                 {
                     float dist = get_distance_by_id(des, cur_node);
-                    new_vector_push_back(dummy_pool, cur_node);
+                    Neighbor cur_nbr = {cur_node, dist};
+                    new_vector_push_back(dummy_pool, &cur_nbr);
                     set_bit(dummy_visited, cur_node);
                 }
             }
@@ -769,7 +785,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
         get_vec_from_compressed_data(compressed_vectors, pivots_data, i, query, 8, dim);
 
         search_for_point_and_prune(scratch, pivots_data, compressed_vectors, neighbours, i, L, pruned_list, query);
-
+        assert(pruned_list->size > 0);
         // #pragma omp critical
 
         set_neighbours(i, pruned_list);
