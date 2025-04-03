@@ -31,57 +31,14 @@ pthread_mutex_t *node_locks;
 #define ANN_SUCCESS 0
 #define ANN_ERROR -1
 
-// 辅助函数声明
-int build_vamana_disk_index(VAMANAIndex *index);
-static void generate_frozen_points(VAMANAIndex *index);
-static void build_graph_links(VAMANAIndex *index);
-
-// 主构建函数
-int build_vamana_disk_index(VAMANAIndex *index)
+/*
+ * Free resources
+ */
+static void
+FreeBuildState(VamanaBuildState *buildstate)
 {
-    printf("Starting index build with %zu points...\n", index->nd);
-
-    // 参数校验
-
-    // 初始化查询暂存区（简化实现）
-    size_t scratch_size = 5 + index->indexingQueueSize;
-    // initialize_query_scratch(scratch_size, ...);
-
-    build_graph_links(index);
-
-    // 统计图结构信息
-    size_t max_degree = 0, min_degree = SIZE_MAX, total_edges = 0, low_degree_count = 0;
-    for (size_t i = 0; i < index->nd; ++i)
-    {
-        size_t degree = index->graph_store.neighbors[i].size;
-        max_degree = degree > max_degree ? degree : max_degree;
-        min_degree = degree < min_degree ? degree : min_degree;
-        total_edges += degree;
-        if (degree < 2)
-            low_degree_count++;
-    }
-
-    printf("Index built with degree: max:%zu  avg:%.2f  min:%zu  count(deg<2):%zu\n",
-           max_degree, (float)total_edges / (index->nd + index->num_frozen_pts),
-           min_degree, low_degree_count);
-
-    index->has_built = 1;
-    return ANN_SUCCESS;
-}
-
-// 构建图链接（简化实现）
-static void build_graph_links(VAMANAIndex *index)
-{
-    // 实际实现图构建算法（如NSW、HNSW等）
-    // 为每个节点生成邻居列表
-    for (size_t i = 0; i < index->nd; ++i)
-    {
-        // 示例：固定每个节点有10个邻居
-        UIntArray *neighbors = &index->graph_store.neighbors[i];
-        neighbors->size = 10;
-        neighbors->data = malloc(10 * sizeof(uint32_t));
-        // ... 填充实际邻居数据
-    }
+    MemoryContextDelete(buildstate->graphCtx);
+    MemoryContextDelete(buildstate->tmpCtx);
 }
 
 /*
@@ -184,7 +141,7 @@ InitBuildState(VamanaBuildState *buildstate, Relation heap, Relation index, Inde
     buildstate->heap = heap;
     buildstate->index = index;
     buildstate->indexInfo = indexInfo;
-    
+
     buildstate->dimensions = 128;
     buildstate->R = 32;
     buildstate->L = 64;
@@ -195,10 +152,7 @@ InitBuildState(VamanaBuildState *buildstate, Relation heap, Relation index, Inde
     buildstate->reltuples = 0;
     buildstate->indtuples = 0;
 
-
     // TODO 检查参数
-
-    
 }
 /*
  * Build graph
@@ -235,12 +189,12 @@ BuildIndex(Relation heap, Relation index, IndexInfo *indexInfo,
 
     InitBuildState(buildstate, heap, index, indexInfo, forkNum);
 
-    // BuildGraph(buildstate, forkNum);
+    BuildGraph(buildstate, forkNum);
 
-    // if (RelationNeedsWAL(index) || forkNum == INIT_FORKNUM)
-    //     log_newpage_range(index, forkNum, 0, RelationGetNumberOfBlocksInFork(index, forkNum), true);
+    if (RelationNeedsWAL(index) || forkNum == INIT_FORKNUM)
+        log_newpage_range(index, forkNum, 0, RelationGetNumberOfBlocksInFork(index, forkNum), true);
 
-    // FreeBuildState(buildstate);
+    FreeBuildState(buildstate);
 }
 
 IndexBuildResult *

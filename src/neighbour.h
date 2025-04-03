@@ -36,7 +36,7 @@ int compare_neighbors(const void *a, const void *b)
 // Initialize the priority queue
 void init_queue(NeighborPriorityQueue *queue, size_t capacity)
 {
-    queue->data = (Neighbor *)malloc((capacity + 1) * sizeof(Neighbor)); // +1 for 1-based indexing
+    queue->data = (Neighbor *)palloc((capacity + 1) * sizeof(Neighbor)); // +1 for 1-based indexing
     queue->size = 0;
     queue->capacity = capacity;
     queue->cur = 0;
@@ -107,7 +107,11 @@ void priority_queue_reserve(NeighborPriorityQueue *queue, size_t capacity)
 {
     if (capacity + 1 > queue->capacity)
     {
-        queue->data = (Neighbor *)realloc(queue->data, (capacity + 1) * sizeof(Neighbor));
+        Neighbor *new_data = (Neighbor *)palloc((capacity + 1) * sizeof(Neighbor));
+        memcpy((char *)new_data, (char *)queue->data, queue->size * sizeof(Neighbor));
+        pfree(queue->data);
+        queue->data = NULL;
+        queue->data = new_data;
         queue->capacity = capacity;
     }
 }
@@ -123,6 +127,7 @@ void clear_queue(NeighborPriorityQueue *queue)
 void free_queue(NeighborPriorityQueue *queue)
 {
     pfree(queue->data);
+    queue->data = NULL;
 }
 
 #endif

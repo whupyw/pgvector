@@ -12,8 +12,8 @@ typedef struct
     NewVector *expanded_nodes;           // 已经扩展的节点
     uint32_t *is_visited;                // 已经访问的节点
     NeighborPriorityQueue *best_L_nodes; // 指向 NeighborPriorityQueue
-    size_t *entry_point;
-    size_t *max_point;
+    size_t entry_point;
+    size_t max_point;
     uint32_t cur_node;
 } Scratch;
 
@@ -31,9 +31,7 @@ void init_scratch(Scratch *scratch, size_t vector_capacity, size_t L_Size, size_
     scratch->best_L_nodes = (NeighborPriorityQueue *)palloc(sizeof(NeighborPriorityQueue));
     init_queue(scratch->best_L_nodes, L_Size); // 使用 NeighborPriorityQueue 的初始化函数
 
-    scratch->entry_point = (size_t *)palloc(sizeof(size_t));
     scratch->entry_point = entry_point;
-    scratch->max_point = (size_t *)palloc(sizeof(size_t));
     scratch->max_point = vector_capacity;
 
     scratch->cur_node = cur_node;

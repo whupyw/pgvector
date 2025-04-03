@@ -6,7 +6,7 @@
 
 void new_vector_init(NewVector *vec, size_t elem_size)
 {
-    size_t the_capacity = 8;
+    size_t the_capacity = 20;
     vec->data = palloc(elem_size * the_capacity); // 初始容量为 8
     vec->elem_size = elem_size;
     vec->size = 0;
@@ -37,6 +37,7 @@ void new_vector_push_back(NewVector *vec, const void *value)
         }
         memcpy((char *)new_data, (char *)vec->data, vec->elem_size * vec->size);
         // 如果 realloc 成功，更新 vec->data
+        // DEBUG 这里 如果初始容量小的话，会出现段错误
         pfree(vec->data);
         vec->data = NULL;
         vec->data = new_data;
@@ -123,6 +124,7 @@ void new_vector_reserve(NewVector *vec, size_t new_capacity)
         pfree(vec->data);
         vec->data = NULL;
         vec->data = new_data;
+        vec->capacity = new_capacity;
     }
     else if (new_capacity < vec->size)
     {
