@@ -43,5 +43,6 @@ bool vamanagettuple(IndexScanDesc scan, ScanDirection dir)
 
     // // 返回结果
     // return ReturnNextResult(scan, results);
+    elog(INFO, "vamana gettuple");
     return true;
 }

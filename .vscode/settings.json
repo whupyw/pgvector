@@ -25,6 +25,14 @@
         "bit_array.h": "c",
         "string.h": "c",
         "memutils.h": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "generic_xlog.h": "c",
+        "vamana.h": "c",
+        "neighbour.h": "c",
+        "vector_cache.h": "c",
+        "parallel.h": "c",
+        "pairingheap.h": "c",
+        "iterator": "c",
+        "chrono": "c"
     }
 }

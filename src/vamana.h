@@ -11,32 +11,42 @@
 #include "utils/relptr.h"
 #include "utils/sampling.h"
 #include "vector.h"
-
+#include "new_vector.h"
+#include "vector_cache.h"
+#include "neighbour.h"
 /* Vamana 特定的参数 */
 #define VAMANA_MAX_LEVEL 64      // 最大层数
 #define VAMANA_DEFAULT_R 64      // 默认候选集大小
 #define VAMANA_DEFAULT_L 100     // 默认搜索列表大小
 #define VAMANA_DEFAULT_ALPHA 1.2 // 默认alpha参数
 
+#define VAMANA_MAGIC_NUMBER 0xA953A953 // 文件魔数校验
+#define VAMANA_VERSION 1               // 版本
+#define VAMANA_PAGE_ID 0xFF91          // 页面类型标识
+
+#define VAMANA_MAX_DIM 1000 // 向量最大维度
+
+#define VAMANA_TYPE_INFO_PROC 3
+
 #define PROGRESS_VAMANA_PHASE_LOAD 2
 
-typedef struct VamanaElementData VamanaElementData;
-typedef struct VamanaNeighborArray VamanaNeighborArray;
+#define VamanaPageGetOpaque(page) ((VamanaPageOpaque)PageGetSpecialPointer(page))
+#define VamanaPageGetMeta(page) ((VamanaMetaPageData *)PageGetContents(page))
 
-#define VamanaPtrDeclare(type, relptrtype, ptrtype) \
-    relptr_declare(type, relptrtype);               \
-    typedef union                                   \
-    {                                               \
-        type *ptr;                                  \
-        relptrtype relptr;                          \
-    } ptrtype
+// #define VamanaPtrDeclare(type, relptrtype, ptrtype) \
+//     relptr_declare(type, relptrtype);               \
+//     typedef union                                   \
+//     {                                               \
+//         type *ptr;                                  \
+//         relptrtype relptr;                          \
+//     } ptrtype
 
 /* Pointers that can be absolute or relative */
 /* Use char for DatumPtr so works with Pointer */
-VamanaPtrDeclare(VamanaElementData, VamanaElementRelptr, VamanaElementPtr);
-VamanaPtrDeclare(VamanaNeighborArray, VamanaNeighborArrayRelptr, VamanaNeighborArrayPtr);
-VamanaPtrDeclare(VamanaNeighborArrayPtr, VamanaNeighborsRelptr, VamanaNeighborsPtr);
-VamanaPtrDeclare(char, DatumRelptr, DatumPtr);
+// VamanaPtrDeclare(VamanaElementData, VamanaElementRelptr, VamanaElementPtr);
+// VamanaPtrDeclare(VamanaNeighborArray, VamanaNeighborArrayRelptr, VamanaNeighborArrayPtr);
+// VamanaPtrDeclare(VamanaNeighborArrayPtr, VamanaNeighborsRelptr, VamanaNeighborsPtr);
+// VamanaPtrDeclare(char, DatumRelptr, DatumPtr);
 
 // 简化后的数据结构
 typedef struct
@@ -46,18 +56,25 @@ typedef struct
     uint32_t *data;
 } UIntArray;
 
+typedef struct VamanaPageOpaqueData
+{
+    BlockNumber nextblkno;
+    uint16 unused;
+    uint16 page_id; /* for identification of Vamana indexes */
+} VamanaPageOpaqueData;
+
+typedef VamanaPageOpaqueData *VamanaPageOpaque;
+
 // 构建索引所需要的数据
 typedef struct
 {
     // 数据集路径
-    char * data_path;
+    char *data_path;
 
     // 数据存储相关
     size_t nd;             // 数据点数量
     size_t num_frozen_pts; // 冻结点数量
     size_t data_dim;       // 数据维度
-
-    
 
     // 图结构存储
     struct
@@ -77,26 +94,53 @@ typedef struct
     int has_built;
 } VAMANAIndex;
 
-/* Vamana元素结构 */
-typedef struct VamanaElementData
+typedef struct VamanaMetaPageData
 {
-    ItemPointerData heaptid;      // 堆表指针
-    BlockNumber blkno;            // 块号
-    OffsetNumber offno;           // 偏移量
-    int16 level;                  // 层级
-    DatumPtr value;               // 向量值
-    VamanaNeighborsPtr neighbors; // 邻居列表
-    uint32 hash;                  // 哈希值
-    LWLock lock;
-} VamanaElementData;
+    uint32 magicNumber;
+    uint32 version;
 
-typedef VamanaElementData *VamanaElement;
+    // 图结构参数
+    uint32 dimensions;
+    uint32 R;
+    uint32 num_points;
+    uint32 entry_point;
+    uint16 m;
+
+    uint16 efConstruction;
+    BlockNumber entryBlkno;
+    OffsetNumber entryOffno;
+    int16 entryLevel;
+    BlockNumber insertPage;
+} VamanaMetaPageData;
+
+typedef VamanaMetaPageData *VamanaMetaPage;
 
 typedef struct VamanaAllocator
 {
     void *(*alloc)(Size size, void *state);
     void *state;
 } VamanaAllocator;
+
+typedef struct VamanaGraph
+{
+    /* Graph state */
+    slock_t lock;
+
+    double indtuples;
+
+    /* Entry state */
+    LWLock entryLock;
+    LWLock entryWaitLock;
+
+    /* Allocations state */
+    LWLock allocatorLock;
+    Size memoryUsed;
+    Size memoryTotal;
+
+    /* Flushed state */
+    LWLock flushLock;
+    bool flushed;
+} VamanaGraph;
 
 /* Vamana 构建状态 */
 typedef struct VamanaBuildState
@@ -114,14 +158,21 @@ typedef struct VamanaBuildState
     int T;        // 线程数
     double alpha; // alpha参数
 
+    char *index_table_name;
+    char *data_table_name;
+
     Relation heap;
     Relation index;
     IndexInfo *indexInfo;
-
+    ForkNumber forkNum;
     // 内存管理
     MemoryContext tmpCtx;
     MemoryContext graphCtx;
     VamanaAllocator allocator;
+
+    //
+    VamanaGraph graphData;
+    VamanaGraph *graph;
 
     // 并行构建支持
     bool isParallel;
@@ -132,10 +183,48 @@ typedef struct VamanaBuildState
     double indtuples;
 } VamanaBuildState;
 
-/* HNSW index options */
 typedef struct VamanaOptions
 {
 } VamanaOptions;
+
+typedef union
+{
+    struct pointerhash_hash *pointers;
+    struct offsethash_hash *offsets;
+    struct tidhash_hash *tids;
+} visited_hash;
+
+typedef struct VamanaTypeInfo
+{
+    int maxDimensions;
+    Datum (*normalize)(PG_FUNCTION_ARGS);
+    void (*checkValue)(Pointer v);
+} VamanaTypeInfo;
+
+typedef struct VamanaQuery
+{
+    Datum value;
+} VamanaQuery;
+
+typedef struct VamanaScanOpaqueData
+{
+    const VamanaTypeInfo *typeInfo;
+    bool first;
+    List *w;
+    visited_hash v;
+    pairingheap *discarded;
+    VamanaQuery q;
+    int m;
+    int64 tuples;
+    double previousDistance;
+    Size maxMemory;
+    MemoryContext tmpCtx;
+
+    /* Support functions */
+    // VamanaSupport support;
+} VamanaScanOpaqueData;
+
+typedef VamanaScanOpaqueData *VamanaScanOpaque;
 
 /* 函数声明 */
 void vamanainit(void);
@@ -156,4 +245,9 @@ void vamanarescan(IndexScanDesc scan, ScanKey keys, int nkeys,
                   ScanKey orderbys, int norderbys);
 bool vamanagettuple(IndexScanDesc scan, ScanDirection dir);
 void vamanaendscan(IndexScanDesc scan);
+Buffer VamanaNewBuffer(Relation index, ForkNumber forkNum);
+bool create_index_table(char *index_name, char *table_name, int dimensions);
+void get_vectors_and_neighbors(char *index_table_name, NewVector *re_vectors, NewVector *target_vectors);
+bool search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
+                                int k, Vector *target, uint32_t vector_num);
 #endif /* VAMANA_H */

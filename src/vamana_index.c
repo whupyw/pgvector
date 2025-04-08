@@ -18,8 +18,6 @@ typedef struct
     uint32_t *graph_store;
 } DataStore;
 
-const char *compressed_data_path = NULL;
-const char *pivots_data_path = NULL;
 const uint32_t *static_compressed_data = NULL;
 const float *static_pivot_data = NULL;
 const uint32_t *static_neighbors = NULL;
@@ -283,11 +281,33 @@ void get_vec_from_compressed_data(const float *compressed_data, float *pivots_da
     }
 }
 
+float vector_L2_distance(int dim, float *ax, float *bx)
+{
+    float distance = 0.0;
+
+    /* Auto-vectorized */
+    for (int i = 0; i < dim; i++)
+    {
+        float diff = ax[i] - bx[i];
+
+        distance += diff * diff;
+    }
+
+    return distance;
+}
+
 float get_distance_by_id(uint32_t vec_a, uint32_t vec_b)
 {
     // DEBUG
     // 从压缩向量中获取向量聚类中心
     // 再从码本中获取向量
+
+    if (static_compressed_data == NULL || static_pivot_data == NULL)
+    {
+        elog(ERROR, "static_compressed_data or static_pivot_data is NULL");
+        return 0.0;
+    }
+
     float *vector_a = (float *)palloc(sizeof(float) * 128);
     get_vec_from_compressed_data(static_compressed_data, static_pivot_data, vec_a, vector_a, 8, 128);
 
@@ -297,11 +317,25 @@ float get_distance_by_id(uint32_t vec_a, uint32_t vec_b)
     return dist;
 }
 
-void get_vec_from_vectors(float *vectors, uint32_t location, float *vector, uint32_t dim)
+float get_distance_to_target_by_id(uint32_t vec_id, Vector *vec_b, uint32_t dim)
 {
-    // 从原始数据中获取向量
-    // 计算这两个向量的距离
-    // 返回距离
+    // DEBUG
+    // 从压缩向量中获取向量聚类中心
+    // 再从码本中获取向量
+    elog(INFO, "get_distance starts");
+    if (static_compressed_data == NULL || static_pivot_data == NULL)
+    {
+        elog(ERROR, "static_compressed_data or static_pivot_data is NULL");
+        return 0.0;
+    }
+
+    float *vector_a = (float *)palloc(sizeof(float) * dim);
+    get_vec_from_compressed_data(static_compressed_data, static_pivot_data, vec_id, vector_a, 8, 128);
+
+    float *vector_b = vec_b->x;
+    float dist = get_distance(vector_a, vector_b, dim);
+    elog(INFO, "get_distance ends");
+    return dist;
 }
 
 // 初始化候选池并开始搜索
@@ -338,6 +372,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
     Neighbor nn;
     nn.id = init_id;
     nn.distance = distance;
+    nn.expanded = false;
     priority_queue_insert(L_nodes, nn); // 将初始节点加入候选集
 
     // 用来存储搜索邻居的结果
@@ -395,6 +430,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
             Neighbor nn;
             nn.id = neighbor_id;
             nn.distance = distance;
+            nn.expanded = false;
             priority_queue_insert(L_nodes, nn); // 将邻居加入候选集
             // elog(INFO, "neighbor_id: %u, distance: %f", neighbor_id, distance);
         }
@@ -615,7 +651,7 @@ void search_for_point_and_prune(Scratch *scratch, float *pivots_data, uint32_t *
 
     if (pruned_list->size > 0)
     {
-        elog(INFO, "pruned_list size %d", pruned_list->size);
+        // elog(INFO, "pruned_list size %d", pruned_list->size);
         assert(pruned_list->size == 0);
     }
 
@@ -635,12 +671,12 @@ void set_neighbours(uint32_t node, MyVector *neighbors)
     // 这里实现将邻接列表存入 PostgreSQL 数据表
     if (neighbors->size == 0)
     {
-        elog(INFO, "neighbors size is 0");
+        // elog(INFO, "neighbors size is 0");
         return;
     }
     NewVector *des_neighbors = NULL;
     des_neighbors = new_vector_get(static_neighbors_vectors, node);
-    elog(INFO, "Setting neighbors for node %u", node);
+    // elog(INFO, "Setting neighbors for node %u", node);
     new_vector_reserve(des_neighbors, neighbors->size);
     new_vector_resize(des_neighbors, neighbors->size);
     memcpy((char *)des_neighbors->data, (char *)neighbors->data, neighbors->size * sizeof(uint32_t));
@@ -648,7 +684,7 @@ void set_neighbours(uint32_t node, MyVector *neighbors)
     for (size_t i = 0; i < des_neighbors->size; i++)
     {
         uint32_t *cur_neighbor = new_vector_get(des_neighbors, i);
-        elog(INFO, "Neighbor %d", *cur_neighbor);
+        // elog(INFO, "Neighbor %d", *cur_neighbor);
     }
 }
 
@@ -782,7 +818,8 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
 
     size_t i;
     // 要存储初始点
-    size_t entry_point = calculate_entry(num_points);
+    // size_t entry_point = calculate_entry(num_points);
+    size_t entry_point = 30;
 
     // 遍历列表
     for (i = 0; i < num_points; i++)

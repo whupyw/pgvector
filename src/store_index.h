@@ -3,8 +3,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "new_vector.h"
-bool create_disk_laylout();
+bool create_disk_laylout(const char *table_name);
 
-bool save_neighbors_to_disk(NewVector *neighbors);
+bool save_neighbors_to_disk(NewVector *neighbors, const char *table_name);
 
 #endif

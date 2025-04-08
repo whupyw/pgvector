@@ -28,7 +28,7 @@ bool file_exists(const char *path);
 
 size_t load_pq_pivots(const char *filename, void **data, uint32_t *num_centers, uint32_t *ndims, void **centroid, size_t **chunk_offsets, uint32_t *num_chunks)
 {
-    elog(INFO, "Reading binary file: %s", filename);
+    elog(LOG, "Reading binary file: %s", filename);
     int fd = OpenTransientFile(filename, O_RDONLY);
     if (fd < 0)
     {
@@ -185,7 +185,7 @@ void load_bin_float(const char *bin_file, float **data, size_t *npts, size_t *di
 
 size_t save_pq_pivots(const char *filename, void *data, size_t num_centers, size_t ndims, void *centroid, size_t *chunk_offsets, size_t num_chunks)
 {
-    elog(INFO, "Writing binary file: %s, num_centers: %zu, ndims: %zu", filename, num_centers, ndims);
+    elog(LOG, "Writing binary file: %s, num_centers: %zu, ndims: %zu", filename, num_centers, ndims);
     int fd = OpenTransientFile(filename, O_WRONLY | O_CREAT | O_TRUNC);
     if (fd < 0)
     {
@@ -356,8 +356,8 @@ float run_lloyds(float *data, size_t num_points, size_t dim, float *centers, siz
 const float *load_vector_data(const char *table_name, const char *column_name, size_t *npts, size_t *ndims)
 {
 
-    elog(INFO, "print npts = %zu, ndims = %zu", *npts, *ndims);
-    elog(INFO, "start load_vector_data");
+    elog(LOG, "print npts = %zu, ndims = %zu", *npts, *ndims);
+    elog(LOG, "start load_vector_data");
     MemoryContext ctx, old_ctx;
     if (SPI_connect() != SPI_OK_CONNECT)
     {
@@ -377,7 +377,7 @@ const float *load_vector_data(const char *table_name, const char *column_name, s
 
     // 获取数据点数（行数）
     *npts = (size_t)SPI_processed;
-    elog(INFO, "npts = %zu", *npts);
+    elog(LOG, "npts = %zu", *npts);
     if (*npts == 0)
     {
         elog(WARNING, "No data found in table: %s", table_name);
@@ -394,8 +394,8 @@ const float *load_vector_data(const char *table_name, const char *column_name, s
         SPI_finish();
         return NULL;
     }
-    elog(INFO, "first vector OK");
-    elog(INFO, "ready DatumGetArrayTypeP");
+    elog(LOG, "first vector OK");
+    elog(LOG, "ready DatumGetArrayTypeP");
     Vector *vec = (Vector *)DatumGetPointer(first_val);
     *ndims = vec->dim; // 获取 vector 维度
     // 使用 PostgreSQL 内存管理
@@ -407,12 +407,12 @@ const float *load_vector_data(const char *table_name, const char *column_name, s
     old_ctx = MemoryContextSwitchTo(ctx);
 
     // 分配内存存储数据
-    // elog(INFO, "ready MemoryContextAlloc");
-    elog(INFO, "print npts = %zu, ndims = %zu", *npts, *ndims);
+    // elog(LOG, "ready MemoryContextAlloc");
+    elog(LOG, "print npts = %zu, ndims = %zu", *npts, *ndims);
     float *inputdata = (float *)MemoryContextAlloc(ctx, (*npts) * (*ndims) * sizeof(float));
 
     // 解析每一行数据
-    elog(INFO, "ready for loop");
+    elog(LOG, "ready for loop");
     for (size_t i = 0; i < *npts; i++)
     {
         HeapTuple tuple = SPI_tuptable->vals[i];
@@ -425,7 +425,7 @@ const float *load_vector_data(const char *table_name, const char *column_name, s
 
         Vector *vec = (Vector *)DatumGetPointer(val);
         float *vec_data = vec->x;
-        // elog(INFO,"loop:i = %ld", i);
+        // elog(LOG,"loop:i = %ld", i);
         //  复制数据到 inputdata
         memcpy(inputdata + i * (*ndims), vec_data, (*ndims) * sizeof(float));
     }
@@ -438,7 +438,7 @@ const float *load_vector_data(const char *table_name, const char *column_name, s
 
 void get_vector_data_param(const char *table_name, const char *column_name, size_t *npts, size_t *ndims)
 {
-    elog(INFO, "开始获取向量维度与行数");
+    elog(LOG, "开始获取向量维度与行数");
 
     // 连接到 SPI
     if (SPI_connect() != SPI_OK_CONNECT)
@@ -472,7 +472,7 @@ void get_vector_data_param(const char *table_name, const char *column_name, size
         return;
     }
     *npts = DatumGetInt64(rowcount);
-    elog(INFO, "数据点数量 npts = %zu", *npts);
+    elog(LOG, "数据点数量 npts = %zu", *npts);
 
     // 阶段 2: 获取向量维度
     //---------------------------------------
@@ -507,7 +507,7 @@ void get_vector_data_param(const char *table_name, const char *column_name, size
     }
     Vector *vec = (Vector *)DatumGetPointer(first_val);
     *ndims = vec->dim;
-    elog(INFO, "向量维度 ndims = %zu", *ndims);
+    elog(LOG, "向量维度 ndims = %zu", *ndims);
 
     // 清理 SPI 连接
     SPI_finish();
@@ -515,7 +515,7 @@ void get_vector_data_param(const char *table_name, const char *column_name, size
 
 void load_vector_data_to_mem(const char *table_name, const char *column_name, size_t *npts, size_t *ndims, float *data)
 {
-    elog(INFO, "start load_vector_data");
+    elog(LOG, "start load_vector_data");
     if (SPI_connect() != SPI_OK_CONNECT)
     {
         elog(ERROR, "SPI_connect failed");
@@ -544,10 +544,10 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
     // Vector *vec = (Vector *)DatumGetPointer(first_val);
     //*ndims = vec->dim; // 获取 vector 维度
 
-    elog(INFO, "print npts = %zu, ndims = %zu", *npts, *ndims);
+    elog(LOG, "print npts = %zu, ndims = %zu", *npts, *ndims);
 
     // 解析每一行数据
-    elog(INFO, "ready for loop");
+    elog(LOG, "ready for loop");
     for (size_t i = 0; i < *npts; i++)
     {
         HeapTuple tuple = SPI_tuptable->vals[i];
@@ -560,7 +560,7 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
 
         Vector *vec = (Vector *)DatumGetPointer(val);
         float *vec_data = vec->x;
-        // elog(INFO,"loop:i = %ld", i);
+        // elog(LOG,"loop:i = %ld", i);
         //  复制数据到 inputdata
         memcpy(data + i * (*ndims), vec_data, (*ndims) * sizeof(float));
     }
@@ -570,7 +570,7 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
 /* 采样函数 */
 void gen_random_slice(const float *inputdata, size_t npts, size_t ndims, double p_val, float **sampled_data, size_t *slice_size)
 {
-    elog(INFO, "Generating random slice of data with p_val = %.2f", p_val);
+    elog(LOG, "Generating random slice of data with p_val = %.2f", p_val);
     if (p_val > 1.0)
         p_val = 1.0;
 
@@ -615,7 +615,7 @@ void gen_random_slice(const float *inputdata, size_t npts, size_t ndims, double 
     // 释放临时数据
     pfree(temp_data);
 
-    elog(INFO, "Successfully sampled %zu data points (%.2f%% of input)", count, (p_val * 100));
+    elog(LOG, "Successfully sampled %zu data points (%.2f%% of input)", count, (p_val * 100));
 }
 // void generate_pq_pivots(float *train_data, size_t train_size, uint32_t train_dim,
 //                         uint32_t num_centroids, uint32_t num_pq_chunks,
@@ -624,7 +624,7 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
                        uint32_t num_pq_chunks, uint32_t max_k_means_reps, const char *pq_pivots_path,
                        bool make_zero_mean)
 {
-    elog(INFO, "Generating PQ pivots for %zu training points, %u dimension, %u centroids, %u PQ chunks, %u max K-means reps, %s", num_train, dim, num_centers, num_pq_chunks, max_k_means_reps, pq_pivots_path);
+    elog(LOG, "Generating PQ pivots for %zu training points, %u dimension, %u centroids, %u PQ chunks, %u max K-means reps, %s", num_train, dim, num_centers, num_pq_chunks, max_k_means_reps, pq_pivots_path);
     if (num_pq_chunks > dim)
     {
         elog(ERROR, "Number of PQ chunks exceeds dimension");
@@ -641,17 +641,17 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
 
     float *full_pivot_data = NULL;
 
-    elog(INFO, "Check if file exists: %s", pq_pivots_path);
+    elog(LOG, "Check if file exists: %s", pq_pivots_path);
     /* Check if file exists */
     if (file_exists(pq_pivots_path))
     {
-        elog(INFO, "PQ pivot file exists. Not generating again");
+        elog(LOG, "PQ pivot file exists. Not generating again");
         MemoryContextSwitchTo(oldcontext);
         MemoryContextDelete(context);
         return -1;
     }
 
-    elog(INFO, "Generating PQ pivots");
+    elog(LOG, "Generating PQ pivots");
     /* Zero-mean normalization */
     float *centroid = (float *)palloc0(dim * sizeof(float));
     if (make_zero_mean)
@@ -669,7 +669,8 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
         {
             for (size_t p = 0; p < num_train; p++)
             {
-                train_data_copy[p * dim + d] -= centroid[d];
+                // 不用归一化了
+                // train_data_copy[p * dim + d] -= centroid[d];
             }
         }
     }
@@ -724,7 +725,7 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
 
     /* Save binary data (to be implemented using PostgreSQL file APIs) */
     int ret = save_pq_pivots(pq_pivots_path, full_pivot_data, num_centers, dim, centroid, chunk_offsets, num_pq_chunks);
-    elog(INFO, "save_pq_pivots ret = %d", ret);
+    elog(LOG, "save_pq_pivots ret = %d", ret);
     pfree(train_data_copy);
     pfree(full_pivot_data);
     pfree(centroid);
@@ -733,7 +734,7 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
     MemoryContextSwitchTo(oldcontext);
     MemoryContextDelete(context);
 
-    elog(INFO, "Saved PQ pivot data to %s", pq_pivots_path);
+    elog(LOG, "Saved PQ pivot data to %s", pq_pivots_path);
     return 0;
 }
 
@@ -743,7 +744,7 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
 
 int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, uint32_t num_pq_chunks,
                                  const char *pq_pivots_path, const char *pq_compressed_vectors_path,
-                                 int use_opq) /* 替换 bool 为 int */
+                                 int use_opq, const char *table_name, const char *column_name) /* 替换 bool 为 int */
 {
     size_t read_blk_size;
     FILE *base_reader;
@@ -777,7 +778,7 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
     fread(&basedim32, sizeof(uint32_t), 1, base_reader);
     // 向量数量根据数据库来定
     num_points = (size_t)npts32;
-    get_vector_data_param("vectors", "embedding", &num_points, &tmp_ndims);
+    get_vector_data_param(table_name, column_name, &num_points, &tmp_ndims);
     dim = (size_t)basedim32;
 
     ctx = AllocSetContextCreate(CurrentMemoryContext,
@@ -800,7 +801,7 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
 
     /* Load pivot data */
     size_t ret = load_pq_pivots(pq_pivots_path, &full_pivot_data, &num_centers, &dim, &centroid, &chunk_offsets, &num_pq_chunks);
-    elog(INFO, "load_pq_pivots ret = %ld", ret);
+    elog(LOG, "load_pq_pivots ret = %ld", ret);
     if (ret == 0)
     {
         elog(ERROR, "Error loading PQ pivot data from file: %s", pq_pivots_path);
@@ -876,25 +877,25 @@ void generate_quantized_data(
     double p_val,
     size_t num_pq_chunks,
     bool use_opq,
-    const char *codebook_prefix)
+    const char *codebook_prefix, const char *table_name, const char *column_name)
 {
     size_t train_size;
     size_t train_dim = 128;
     size_t npts;
     size_t ndims; // 128维向量
-    get_vector_data_param("vectors", "embedding", &npts, &ndims);
+    get_vector_data_param(table_name, column_name, &npts, &ndims);
     float *inputdata = (float *)palloc(npts * ndims * sizeof(float));
-    load_vector_data_to_mem("vectors", "embedding", &npts, &ndims, inputdata);
+    load_vector_data_to_mem(table_name, column_name, &npts, &ndims, inputdata);
     float *sampled_data = NULL;
     size_t slice_size = 0;
 
-    elog(INFO, "start generate_quantized_data");
+    elog(LOG, "start generate_quantized_data");
 
     if (!file_exists(pq_pivots_path))
     {
         // 生成随机数据切片
         gen_random_slice(inputdata, npts, ndims, p_val, &sampled_data, &slice_size);
-        elog(INFO, "Training data with %zu samples loaded.", slice_size); // 使用 NOTICE 级别
+        elog(LOG, "Training data with %zu samples loaded.", slice_size); // 使用 NOTICE 级别
         pfree(inputdata);
         bool make_zero_mean = true;
         if (compare_metric == DISKANN_INNER_PRODUCT)
@@ -904,37 +905,39 @@ void generate_quantized_data(
 
         if (!use_opq)
         {
-            elog(INFO, "start generate pivots");
+            elog(LOG, "start generate pivots");
             generate_pq_pivots(sampled_data, slice_size, (uint32_t)ndims,
                                NUM_PQ_CENTROIDS, (uint32_t)num_pq_chunks,
                                NUM_KMEANS_REPS_PQ, pq_pivots_path, make_zero_mean);
         }
         else
         {
-            elog(INFO, "Skip OPQ Training with predefined pivots in: %s", pq_pivots_path); // 使用 LOG 级别
+            elog(LOG, "Skip OPQ Training with predefined pivots in: %s", pq_pivots_path); // 使用 LOG 级别
         }
     }
     else
     {
-        elog(INFO, "Skip Training with predefined pivots in: %s", pq_pivots_path); // 使用 LOG 级别
+        elog(LOG, "Skip Training with predefined pivots in: %s", pq_pivots_path); // 使用 LOG 级别
     }
 
     // 生成PQ压缩数据
-    elog(INFO, "Generating PQ compressed data");
-    if(!file_exists(pq_compressed_vectors_path)){
+    elog(LOG, "Generating PQ compressed data");
+    if (!file_exists(pq_compressed_vectors_path))
+    {
         generate_pq_data_from_pivots(data_file_to_use, NUM_PQ_CENTROIDS,
                                      (uint32_t)num_pq_chunks, pq_pivots_path,
-                                     pq_compressed_vectors_path, use_opq);
-    } else {
-        elog(INFO, "Skip Generating PQ compressed data");
+                                     pq_compressed_vectors_path, use_opq, table_name, column_name);
     }
-   
+    else
+    {
+        elog(LOG, "Skip Generating PQ compressed data");
+    }
 }
 
 // 辅助函数实现
 bool file_exists(const char *path)
 {
-    elog(INFO, "file_exists:%s", path);
+    elog(LOG, "file_exists:%s", path);
     struct stat buffer;
 #if defined(_WIN32)
     return _stat(path, &buffer) == 0; // Windows 使用 _stat
@@ -949,7 +952,7 @@ void create_disk_layout()
 
 int build_disk_index(const char *dataFilePath, const char *indexFilePath,
                      const char *indexBuildParameters, enum diskann_metric_t compareMetric,
-                     int use_opq, const char *codebook_prefix, size_t npt, size_t dim)
+                     int use_opq, const char *codebook_prefix, const char *table_name, const char *column_name)
 {
 
     /* 变量定义部分 */
@@ -988,19 +991,19 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     char *buildParams = strdup(indexBuildParameters);
     /* 解析 indexBuildParameters */
     token = strtok(buildParams, " ");
-    elog(INFO, "debug line_number_119:");
+    elog(LOG, "debug line_number_119:");
     while (token != NULL && param_count < 10)
     {
         param_list[param_count++] = token;
         token = strtok(NULL, " ");
     }
-    elog(INFO, "debug line_number_120:");
+    elog(LOG, "debug line_number_120:");
     if (param_count < 5 || param_count > 9)
     {
         ereport(ERROR, (errmsg("参数格式错误: 参数数量 %d 超出范围 (5-9)", param_count)));
         return -1;
     }
-    elog(INFO, "debug line_number_126:");
+    elog(LOG, "debug line_number_126:");
     /* 解析 R、L 等参数 */
     R = (unsigned int)atoi(param_list[0]);
     L = (unsigned int)atoi(param_list[1]);
@@ -1021,7 +1024,7 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
         // omp_set_num_threads(num_threads);
     }
 
-    elog(INFO, "参数解析完成: R=%u, L=%u, final_index_ram_limit=%.2f, indexing_ram_budget=%.2f, 线程数=%u",
+    elog(LOG, "参数解析完成: R=%u, L=%u, final_index_ram_limit=%.2f, indexing_ram_budget=%.2f, 线程数=%u",
          R, L, final_index_ram_limit, indexing_ram_budget, num_threads);
 
     // dim 向量维度
@@ -1049,28 +1052,28 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     /* 处理数据文件 */
     if (compareMetric == DISKANN_INNER_PRODUCT)
     {
-        elog(INFO, "处理 INNER_PRODUCT 数据");
+        elog(LOG, "处理 INNER_PRODUCT 数据");
         created_temp_file_for_processed_data = 1;
     }
     else if (compareMetric == DISKANN_COSINE)
     {
-        elog(INFO, "处理 COSINE 数据");
+        elog(LOG, "处理 COSINE 数据");
         created_temp_file_for_processed_data = 1;
     }
 
     /* 构建索引 */
     // ereport(LOG, (errmsg("开始构建索引: R=%u, L=%u, 线程数=%u", R, L, num_threads)));
-    elog(INFO, "开始构建索引: R=%u, L=%u, 线程数=%u", R, L, num_threads);
+    elog(LOG, "开始构建索引: R=%u, L=%u, 线程数=%u", R, L, num_threads);
 
     // 生成量化数据
-    generate_quantized_data(dataFilePath, pq_pivots_path, pq_compressed_vectors_path, compareMetric, p_val, num_pq_chunks, use_opq, codebook_prefix);
+    generate_quantized_data(dataFilePath, pq_pivots_path, pq_compressed_vectors_path, compareMetric, p_val, num_pq_chunks, use_opq, codebook_prefix, table_name, column_name);
 
     // 构建索引
-    elog(INFO, "开始构建索引");
-    build_merged_vamana_index(pq_pivots_path, pq_compressed_vectors_path, indexing_ram_budget, R, L, num_threads, 25000,128);
+    elog(LOG, "开始构建索引");
+    build_merged_vamana_index(pq_pivots_path, pq_compressed_vectors_path, indexing_ram_budget, R, L, num_threads, 25000, 128);
     /* 清理临时文件（如果有的话） */
-   
-    create_disk_laylout();
+
+    create_disk_laylout(table_name);
     pfree(pq_pivots_path);
     pfree(pq_compressed_vectors_path);
     free(buildParams);

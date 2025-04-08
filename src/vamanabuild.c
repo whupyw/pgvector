@@ -15,7 +15,10 @@
 #include "optimizer/optimizer.h"
 #include "storage/bufmgr.h"
 #include "utils/memutils.h"
+#include "catalog/namespace.h"
+#include "utils/rel.h"
 #include "vamana.h"
+#include "diskann.h"
 
 /* 共享内存键值 */
 #define PARALLEL_KEY_VAMANA_SHARED UINT64CONST(0xB000000000000001)
@@ -31,6 +34,48 @@ pthread_mutex_t *node_locks;
 #define ANN_SUCCESS 0
 #define ANN_ERROR -1
 
+static void
+CreateMetaPage(VamanaBuildState *buildstate)
+{
+    Relation index = buildstate->index;
+    ForkNumber forkNum = buildstate->forkNum;
+    Buffer buf;
+    Page page;
+    VamanaMetaPage metap;
+
+    buf = VamanaNewBuffer(index, forkNum);
+    page = BufferGetPage(buf);
+    VamanaInitPage(buf, page);
+
+    /* Set metapage data */
+    metap = VamanaPageGetMeta(page);
+    metap->magicNumber = VAMANA_MAGIC_NUMBER;
+    metap->version = VAMANA_VERSION;
+    metap->dimensions = buildstate->dimensions;
+    metap->entryBlkno = InvalidBlockNumber;
+    metap->entryOffno = InvalidOffsetNumber;
+    metap->entryLevel = -1;
+    metap->insertPage = InvalidBlockNumber;
+    ((PageHeader)page)->pd_lower =
+        ((char *)metap + sizeof(VamanaMetaPageData)) - (char *)page;
+
+    MarkBufferDirty(buf);
+    UnlockReleaseBuffer(buf);
+}
+
+/*
+ * Flush pages
+ */
+static void
+FlushPages(VamanaBuildState *buildstate)
+{
+
+    CreateMetaPage(buildstate);
+
+    buildstate->graph->flushed = true;
+    MemoryContextReset(buildstate->graphCtx);
+}
+
 /*
  * Free resources
  */
@@ -42,11 +87,32 @@ FreeBuildState(VamanaBuildState *buildstate)
 }
 
 /*
- * 在内存中插入元素
+ * Memory context allocator
+ */
+static void *
+VamanaMemoryContextAlloc(Size size, void *state)
+{
+    VamanaBuildState *buildstate = (VamanaBuildState *)state;
+    void *chunk = MemoryContextAlloc(buildstate->graphCtx, size);
+
+    buildstate->graphData.memoryUsed = MemoryContextMemAllocated(buildstate->graphCtx, false);
+
+    return chunk;
+}
+
+/*
+ * Initialize the graph
  */
 static void
-InsertElementInMemory(VamanaBuildState *buildstate, VamanaElement element)
+InitGraph(VamanaGraph *graph, char *base, Size memoryTotal)
 {
+    elog(INFO, "InitGraph");
+    graph->memoryUsed = 0;
+    graph->memoryTotal = memoryTotal;
+    graph->flushed = false;
+    graph->indtuples = 0;
+    SpinLockInit(&graph->lock);
+    elog(INFO, "InitGraph end");
 }
 
 /*
@@ -56,55 +122,37 @@ static bool
 InsertTuple(Relation index, Datum *values, bool *isnull,
             ItemPointer heaptid, VamanaBuildState *buildstate)
 {
-    // VamanaGraph *graph = buildstate->graph;
-    // VamanaElement element;
-    // Size valueSize;
-    // Datum value;
-    // char *base = buildstate->vamanaarea;
+    HeapTuple tuple;
+    TupleDesc tupdesc;
+    Oid table_oid;
+    MemoryContext oldContext;
 
-    // /* 跳过空值 */
-    // if (isnull[0])
-    //     return false;
+    // 获取表的描述信息
+    tupdesc = RelationGetDescr(index);
 
-    // /* 获取索引值 */
-    // if (!VamanaFormIndexValue(&value, values, isnull, buildstate))
-    //     return false;
+    // 根据表的描述和输入的 Datum 构建一个 HeapTuple
+    tuple = heap_form_tuple(tupdesc, values, isnull);
 
-    // valueSize = VARSIZE_ANY(DatumGetPointer(value));
+    // 获取表的 OID
+    table_oid = RelationGetRelid(index);
 
-    // /* 检查内存使用情况 */
-    // LWLockAcquire(&graph->flushLock, LW_SHARED);
-    // if (graph->memoryUsed >= graph->memoryTotal)
-    // {
-    //     LWLockRelease(&graph->flushLock);
-    //     LWLockAcquire(&graph->flushLock, LW_EXCLUSIVE);
+    // 锁定表，准备插入
+    // LWLockAcquire(RelationGetRelationLock(index), LW_EXCLUSIVE);
 
-    //     if (!graph->flushed)
-    //     {
-    //         ereport(NOTICE,
-    //                 (errmsg("vamana graph no longer fits into maintenance_work_mem"),
-    //                  errhint("Increase maintenance_work_mem to speed up builds.")));
+    // 执行插入操作
+    heap_insert(index, tuple, GetCurrentCommandId(true), 0, NULL);
 
-    //         FlushPages(buildstate);
-    //     }
+    // 更新传入的 ItemPointer，指向插入的元组位置
+    ItemPointerSet(heaptid,
+                   BlockIdGetBlockNumber(&(tuple->t_self.ip_blkid)),
+                   tuple->t_self.ip_posid);
 
-    //     LWLockRelease(&graph->flushLock);
-    //     return VamanaInsertTupleOnDisk(index, &buildstate->support,
-    //                                    value, heaptid);
-    // }
+    // 释放锁
+    // LWLockRelease(RelationGetRelationLock(index));
 
-    // /* 分配新元素 */
-    // element = VamanaInitElement(base, heaptid, valueSize,
-    //                             &buildstate->allocator);
+    // 释放内存
+    heap_freetuple(tuple);
 
-    // /* 复制数据 */
-    // memcpy(VamanaPtrAccess(base, element->value),
-    //        DatumGetPointer(value), valueSize);
-
-    // /* 插入元素 */
-    // InsertElementInMemory(buildstate, element);
-
-    // LWLockRelease(&graph->flushLock);
     return true;
 }
 
@@ -115,11 +163,11 @@ static void
 BuildCallback(Relation index, ItemPointer tid, Datum *values,
               bool *isnull, bool tupleIsAlive, void *state)
 {
-    // VamanaBuildState *buildstate = (VamanaBuildState *)state;
-    // VamanaGraph *graph = buildstate->graph;
-    // MemoryContext oldCtx;
+    VamanaBuildState *buildstate = (VamanaBuildState *)state;
+    VamanaGraph *graph = buildstate->graph;
+    MemoryContext oldCtx;
 
-    // oldCtx = MemoryContextSwitchTo(buildstate->tmpCtx);
+    oldCtx = MemoryContextSwitchTo(buildstate->tmpCtx);
 
     // if (InsertTuple(index, values, isnull, tid, buildstate))
     // {
@@ -128,8 +176,8 @@ BuildCallback(Relation index, ItemPointer tid, Datum *values,
     //     SpinLockRelease(&graph->lock);
     // }
 
-    // MemoryContextSwitchTo(oldCtx);
-    // MemoryContextReset(buildstate->tmpCtx);
+    MemoryContextSwitchTo(oldCtx);
+    MemoryContextReset(buildstate->tmpCtx);
 }
 
 /*
@@ -141,10 +189,14 @@ InitBuildState(VamanaBuildState *buildstate, Relation heap, Relation index, Inde
     buildstate->heap = heap;
     buildstate->index = index;
     buildstate->indexInfo = indexInfo;
+    buildstate->forkNum = forkNum;
+    // vectors_index_table
+    buildstate->index_table_name = psprintf("%s_index_table", RelationGetRelationName(heap));
+    buildstate->data_table_name = pstrdup(RelationGetRelationName(heap));
 
     buildstate->dimensions = 128;
-    buildstate->R = 32;
-    buildstate->L = 64;
+    buildstate->R = 20;
+    buildstate->L = 30;
     buildstate->B = 1024;
     buildstate->M = 1024;
     buildstate->T = 1;
@@ -152,6 +204,17 @@ InitBuildState(VamanaBuildState *buildstate, Relation heap, Relation index, Inde
     buildstate->reltuples = 0;
     buildstate->indtuples = 0;
 
+    InitGraph(&buildstate->graphData, NULL, (Size)maintenance_work_mem * 1024L);
+    buildstate->graph = &buildstate->graphData;
+    buildstate->graphCtx = GenerationContextCreate(CurrentMemoryContext,
+                                                   "Vamana build graph context",
+#if PG_VERSION_NUM >= 150000
+                                                   1024 * 1024, 1024 * 1024,
+#endif
+                                                   1024 * 1024);
+    buildstate->tmpCtx = AllocSetContextCreate(CurrentMemoryContext,
+                                               "Vamana build temporary context",
+                                               ALLOCSET_DEFAULT_SIZES);
     // TODO 检查参数
 }
 /*
@@ -159,7 +222,42 @@ InitBuildState(VamanaBuildState *buildstate, Relation heap, Relation index, Inde
  */
 static void BuildGraph(VamanaBuildState *buildstate, ForkNumber forkNum)
 {
-    // 解析参数
+    int parallel_workers = 0;
+    pgstat_progress_update_param(PROGRESS_CREATEIDX_SUBPHASE, PROGRESS_VAMANA_PHASE_LOAD);
+
+    // /* Add tuples to graph */
+    // if (buildstate->heap != NULL)
+    // {
+
+    //     buildstate->reltuples = table_index_build_scan(buildstate->heap, buildstate->index, buildstate->indexInfo,
+    //                                                    true, true, BuildCallback, (void *)buildstate, NULL);
+
+    //     buildstate->indtuples = buildstate->graph->indtuples;
+    // }
+    // 开始转存
+    bool ret = create_index_table(buildstate->index_table_name, buildstate->data_table_name, buildstate->dimensions);
+    if (!ret)
+    {
+        elog(ERROR, "create index table failed");
+    }
+    elog(INFO, "Hello, Vamana!");
+    size_t slice_size = 0;
+
+    // 加载向量数据
+    float *storage = NULL;
+    // load_vector_data("vectors", "embedding", &npt_val, &dim_val);
+    // elog(INFO,"npt_val = %d, dim_val = %d", npt_val, dim_val);
+    //  gen_random_slice(aa, npt_val, dim_val, 0.01, &storage, &slice_size);
+    const char *dataFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_learn.fbin";
+    const char *indexFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test";
+    // L=50,R=64,C=200
+    const char *buildParams = "10 20 200 1 1";
+    enum diskann_metric_t metric = DISKANN_L2; // 假设使用 L2 作为度量方式
+    int use_opq = false;                       // 启用 OPQ
+    const char *codebookPrefix = "/path/to/codebook";
+    int status = build_disk_index(dataFile, indexFile, buildParams, metric, use_opq, codebookPrefix, buildstate->index_table_name, "embedding");
+    if (!buildstate->graph->flushed)
+        FlushPages(buildstate);
 }
 
 /*
@@ -188,7 +286,8 @@ BuildIndex(Relation heap, Relation index, IndexInfo *indexInfo,
 #endif
 
     InitBuildState(buildstate, heap, index, indexInfo, forkNum);
-
+    // const char *heap_name = pstrdup(RelationGetRelationName(heap));
+    // elog(INFO, "Build graph for %s", heap_name);
     BuildGraph(buildstate, forkNum);
 
     if (RelationNeedsWAL(index) || forkNum == INIT_FORKNUM)
@@ -200,7 +299,7 @@ BuildIndex(Relation heap, Relation index, IndexInfo *indexInfo,
 IndexBuildResult *
 vamanabuild(Relation heap, Relation index, IndexInfo *indexInfo)
 {
-
+    elog(INFO, "vamanabuild()");
     IndexBuildResult *result;
     VamanaBuildState buildstate;
 
@@ -209,13 +308,14 @@ vamanabuild(Relation heap, Relation index, IndexInfo *indexInfo)
     result = (IndexBuildResult *)palloc(sizeof(IndexBuildResult));
     result->heap_tuples = buildstate.reltuples;
     result->index_tuples = buildstate.indtuples;
-
+    elog(INFO, "vamanabuild() end");
     return result;
 }
 
 /* 空索引构建函数 */
 void vamanabuildempty(Relation index)
 {
+    elog(INFO, "vamanabuildempty()");
     IndexInfo *indexInfo = BuildIndexInfo(index);
     VamanaBuildState buildstate;
     BuildIndex(NULL, index, indexInfo, &buildstate, INIT_FORKNUM);

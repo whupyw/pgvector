@@ -7,14 +7,14 @@
 
 extern const NewVector *static_neighbors_vectors;
 
-bool create_disk_laylout()
+bool create_disk_laylout(const char *table_name)
 {
     elog(INFO, "create disk layout");
-    bool ret = save_neighbors_to_disk(static_neighbors_vectors);
+    bool ret = save_neighbors_to_disk(static_neighbors_vectors, table_name);
     return ret;
 }
 
-bool save_neighbors_to_disk(NewVector *neighbors)
+bool save_neighbors_to_disk(NewVector *neighbors, const char *table_name)
 {
     // 连接到 PostgreSQL 内部 SPI 上下文
     if (SPI_connect() != SPI_OK_CONNECT)
@@ -23,8 +23,8 @@ bool save_neighbors_to_disk(NewVector *neighbors)
         return false;
     }
 
-    // 获取数据表中记录的数量（例如：3 行数据）
-    const char *select_query = "SELECT id FROM vectors"; // 假设我们根据 `id` 来更新
+    char select_query[256];
+    snprintf(select_query, sizeof(select_query), "SELECT vector_id FROM %s", table_name);
     int ret = SPI_exec(select_query, 0);
     if (ret != SPI_OK_SELECT)
     {
@@ -79,8 +79,8 @@ bool save_neighbors_to_disk(NewVector *neighbors)
             strcat(array_string, neighbor_string);
         }
         char query[256];
-        snprintf(query, sizeof(query), "UPDATE vectors SET neighbors = ARRAY[%s] WHERE id = %d", array_string, id);
-        elog(INFO, "Executing query: %s", query);
+        snprintf(query, sizeof(query), "UPDATE %s SET neighbors = ARRAY[%s] WHERE vector_id = %d", table_name, array_string, id);
+        //elog(INFO, "Executing query: %s", query);
 
         // 执行更新操作
         ret = SPI_exec(query, 1); // 更新 1 行

@@ -31,6 +31,7 @@
 #include "commands/tablecmds.h"
 
 #include "diskann.h"
+#include "vamana.h"
 #include "vamana_index.h"
 #include "new_vector.h"
 #include "my_vector.h"
@@ -1550,20 +1551,62 @@ Datum test_func(PG_FUNCTION_ARGS)
 	// generate_random_neighbors_for_vector(result, 3, 2);
 	// save_neighbors_to_disk(result);
 
-	NewVector *des_neighbors = (NewVector *)palloc(sizeof(NewVector));
-	MyVector *neighbors = (MyVector *)palloc(sizeof(MyVector));
-	new_vector_init(des_neighbors, sizeof(uint32_t));
-	vector_init(neighbors);
-	vector_push_back(neighbors, 1);
-	vector_push_back(neighbors, 2);
-	vector_push_back(neighbors, 3);
-	new_vector_reserve(des_neighbors, neighbors->size);
-	new_vector_resize(des_neighbors, neighbors->size);
-	memcpy((char *)des_neighbors->data, (char *)neighbors->data, neighbors->size * sizeof(uint32_t));
-	for(int i = 0; i < des_neighbors->size; i++)
+	// NewVector *des_neighbors = (NewVector *)palloc(sizeof(NewVector));
+	// MyVector *neighbors = (MyVector *)palloc(sizeof(MyVector));
+	// new_vector_init(des_neighbors, sizeof(uint32_t));
+	// vector_init(neighbors);
+	// vector_push_back(neighbors, 1);
+	// vector_push_back(neighbors, 2);
+	// vector_push_back(neighbors, 3);
+	// new_vector_reserve(des_neighbors, neighbors->size);
+	// new_vector_resize(des_neighbors, neighbors->size);
+	// memcpy((char *)des_neighbors->data, (char *)neighbors->data, neighbors->size * sizeof(uint32_t));
+	// for(int i = 0; i < des_neighbors->size; i++)
+	// {
+	// 	uint32_t *val = new_vector_get(des_neighbors, i);
+	// 	elog(INFO, "pos:%d,value:%d", i, *val);
+	// }
+	// bool is_ok = create_index_table("aaa", "vectors", 2);
+
+	// NewVector *target = (NewVector *)palloc(sizeof(NewVector));
+	// new_vector_init(target, sizeof(uint32_t));
+	// uint32_t val = 1;
+	// uint32_t val2 = 2;
+	// uint32_t val3 = 3;
+	// new_vector_push_back(target, &val);
+	// new_vector_push_back(target, &val2);
+	// new_vector_push_back(target, &val3);
+	// NewVector *res = (NewVector *)palloc(sizeof(NewVector));
+	// new_vector_init(res, sizeof(VectorCache));
+	// get_vectors_and_neighbors("vectors_index_table", res, target);
+	// elog(INFO, "Hello, Func!,res_size:%d", res->size);
+	// for (uint32_t i = 0; i < res->size; i++)
+	// {
+	// 	VectorCache *cur_cache = (VectorCache *)new_vector_get(res, i);
+	// 	elog(INFO, "cur_cache->id:%d", cur_cache->vector_id);
+	// 	elog(INFO, "res_size:%d", cur_cache->neighbor_count);
+	// 	// elog(INFO, "cur_cache->neighbors->size:%d", cur_cache->neighbors->size);
+	// 	for (uint32_t j = 0; j < cur_cache->neighbor_count; j++)
+	// 	{
+	// 		elog(INFO, "pos:%d,value:%d", j, cur_cache->neighbors[j]);
+	// 	}
+	// 	char* buf;
+	// 	PrintVector(buf, cur_cache->vector);
+	// }
+
+	//测试新写的搜索函数
+	Vector *target = InitVector(128);
+	// get_vector_in_database("vectors_index_table", 1, target);
+
+	for (uint32_t i = 0; i < 128; i++)
 	{
-		uint32_t *val = new_vector_get(des_neighbors, i);
-		elog(INFO, "pos:%d,value:%d", i, *val);
+		target->x[i] = i % 64;
 	}
+	char *printVec;
+	PrintVector(printVec, target);
+	elog(INFO, "target:%s", printVec);
+	search_k_nearest_neighbors("vectors_index_table", 30, 10, target, 128);
+
+
 	PG_RETURN_NULL();
 }
