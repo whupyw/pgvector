@@ -8,6 +8,8 @@ typedef enum diskann_metric_t
 
 const float *load_vector_data(const char *table_name, const char *column_name, size_t *npts, size_t *ndims);
 
+size_t load_pq_pivots(const char *filename, void **data, uint32_t *num_centers, uint32_t *ndims, void **centroid, size_t **chunk_offsets, uint32_t *num_chunks);
+
 void gen_random_slice(const float *inputdata, size_t npts, size_t ndims, double p_val, float **sampled_data, size_t *slice_size);
 
 int build_disk_index(const char *dataFilePath, const char *indexFilePath,

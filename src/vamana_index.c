@@ -206,7 +206,7 @@ int load_compressed_vectors(const char *compressed_file_path, size_t *num_points
     *num_pq_chunks = num_pq_chunks32;
 
     // 为压缩数据分配内存（用一维数组存储所有数据点的聚类中心索引）
-    *compressed_data = (uint32_t *)palloc(*num_points * (*num_pq_chunks) * sizeof(uint32_t));
+    *compressed_data = (uint32_t *)malloc(*num_points * (*num_pq_chunks) * sizeof(uint32_t));
 
     num_blocks = (*num_points + 8192 - 1) / 8192; // 每个块最大 8192 个数据点
     block_size = (*num_points <= 8192) ? *num_points : 8192;
@@ -872,7 +872,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
         if (cur_neighbors->size > R)
         {
             // 已访问列表
-            uint32_t *dummy_visited = (uint32_t *)calloc(R, sizeof(uint32_t));
+            uint32_t *dummy_visited = (uint32_t *)calloc(num_points/32+1, sizeof(uint32_t));
             NewVector *dummy_pool = (NewVector *)palloc(sizeof(NewVector));
             new_vector_init_with_capacity(dummy_pool, sizeof(Neighbor), 2 * R);
             MyVector *new_out_neighbors = (MyVector *)palloc(sizeof(MyVector));
@@ -893,8 +893,10 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
             // prune_neighbors(i, scratch, dummy_pool, L, 1.0, R);
             new_prune_neighbors(i, dummy_pool, new_out_neighbors, L, alpha, R, scratch);
             set_neighbours(i, new_out_neighbors);
-            pfree(dummy_pool);
-            free(dummy_visited);
+            if (dummy_pool)
+                pfree(dummy_pool);
+            if (dummy_visited)
+                free(dummy_visited);
             pfree(new_out_neighbors);
         }
         free_scratch(scratch);

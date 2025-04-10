@@ -18,6 +18,9 @@
 #include <utils/array.h>
 #include "vamana_index.h"
 #include "bit_array.h"
+#include "kv_table.h"
+
+#define FULL_PRECISION_REORDER_MULTIPLIER 2
 
 /* 初始化Vamana索引 */
 void vamanainit(void)
@@ -262,7 +265,16 @@ void get_vectors_and_neighbors(char *index_table_name, NewVector *re_vectors, Ne
             snprintf(query + strlen(query), sizeof(query) - strlen(query), "%d", vector_id);
         }
     }
-    snprintf(query + strlen(query), sizeof(query) - strlen(query), ")");
+    // snprintf(query + strlen(query), sizeof(query) - strlen(query), ")");
+    snprintf(query + strlen(query), sizeof(query) - strlen(query), ") ORDER BY CASE vector_id ");
+    for (size_t i = 0; i < target_vectors->size; i++)
+    {
+        uint32_t *vector_id_pointer = new_vector_get(target_vectors, i);
+        uint32_t vector_id = *vector_id_pointer;
+        snprintf(query + strlen(query), sizeof(query) - strlen(query),
+                 "WHEN %d THEN %zu ", vector_id, i + 1);
+    }
+    snprintf(query + strlen(query), sizeof(query) - strlen(query), "END");
     elog(INFO, "query: %s", query);
     if (SPI_execute(query, true, 0) != SPI_OK_SELECT)
     {
@@ -341,7 +353,7 @@ void get_vectors_and_neighbors(char *index_table_name, NewVector *re_vectors, Ne
     SPI_finish();
 }
 
-bool search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
+NewVector* search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
                                 int k, Vector *target, uint32_t vector_num)
 {
     // 要考虑的点，邻居肯定不是全加载
@@ -366,7 +378,10 @@ bool search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
     // 存储准备查询的节点
     NewVector *frontier_nhoods;
     NewVector *frontier_nhoods_req;
-    // 缓存机制
+    // NewVector *vector_caches;
+    //  缓存机制
+
+    NewVector *res_vector_ids;
 
     retset = (NeighborPriorityQueue *)palloc(sizeof(NeighborPriorityQueue));
     init_queue(retset, k);
@@ -381,6 +396,11 @@ bool search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
 
     frontier_nhoods = (NewVector *)palloc(sizeof(NewVector));
     new_vector_init_with_capacity(frontier_nhoods, sizeof(VectorCache), 2 * beam_width);
+
+    res_vector_ids = (NewVector *)palloc(sizeof(NewVector));
+    new_vector_init_with_capacity(res_vector_ids, sizeof(uint32_t), k + 1);
+    // vector_caches = (NewVector *)palloc(sizeof(NewVector));
+    // new_vector_init_with_capacity(vector_caches, sizeof(VectorCache), 3 * beam_width);
 
     // 获取初始节点的id和dist 加入候选集
     Vector *init_vec = InitVector(target->dim);
@@ -434,6 +454,7 @@ bool search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
         // 加载frontier中的节点的邻居
         // select vector and neighbors from disk
         get_vectors_and_neighbors(index_table_name, frontier_nhoods, frontier_nhoods_req);
+        // new_vector_append(vector_caches, frontier_nhoods);
 
         // 处理缓存中的邻居
         // 拿出一个节点
@@ -480,29 +501,90 @@ bool search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
         }
     }
     // 排序full_retset
+    bool use_full_sort = true;
+    if (use_full_sort)
+    {
+        // 隐式重排序
+        // 将full_retset的距离替换为真实距离
 
-    // 隐式重排序
+        // 截断一部分节点
+        if (full_retset->size > k * FULL_PRECISION_REORDER_MULTIPLIER)
+        {
+            new_vector_resize(full_retset, k * FULL_PRECISION_REORDER_MULTIPLIER);
+        }
+
+        // kv_table *my_kv_table = create_kv_table();
+        new_vector_clear(frontier_nhoods);
+        new_vector_clear(frontier_nhoods_req);
+
+        for (size_t i = 0; i < full_retset->size; i++)
+        {
+            // 判断哪些在内存哪些不在
+            // 先全部从磁盘中获取
+            uint32_t n_id = ((Neighbor *)new_vector_get(full_retset, i))->id;
+            elog(INFO, "isert_id: %d", n_id);
+            // int ret = kv_insert(my_kv_table, n_id, i);
+            // if (ret == 0)
+            // {
+            //     elog(ERROR, "kv_insert failed");
+            // }
+            new_vector_push_back(frontier_nhoods_req, &n_id);
+        }
+
+        get_vectors_and_neighbors(index_table_name, frontier_nhoods, frontier_nhoods_req);
+
+        if (frontier_nhoods->size != full_retset->size)
+        {
+            elog(ERROR, "frontier_nhoods->size != full_retset->size");
+        }
+
+        for (size_t i = 0; i < full_retset->size; i++)
+        {
+            VectorCache *cur = new_vector_get(frontier_nhoods, i);
+            elog(INFO, "isert_id: %d", cur->vector_id);
+            float true_dist = vector_L2_distance(target->dim, target->x, cur->vector->x);
+            Neighbor *nbr = (Neighbor *)new_vector_get(full_retset, i);
+            nbr->distance = true_dist;
+        }
+    }
+
     new_vector_sort(full_retset, compare_neighbors);
 
     for (uint32_t i = 0; i < k && i < full_retset->size; i++)
     {
         Neighbor *nbr = (Neighbor *)new_vector_get(full_retset, i);
-        elog(INFO, "id: %d, distance: %f", nbr->id, nbr->distance);
+        //elog(INFO, "id: %d, distance: %f", nbr->id, nbr->distance);
+        uint32_t nbr_id = nbr->id;
+        new_vector_push_back(res_vector_ids, &nbr_id);
     }
 
     free(is_visited);
-    elog(INFO, "ready");
     new_vector_free(frontier);
-    elog(INFO, "finished");
     new_vector_free(frontier_nhoods);
     new_vector_free(frontier_nhoods_req);
     new_vector_free(full_retset);
+    // new_vector_free(vector_caches);
+    // pfree(vector_caches);
     free_queue(retset);
     pfree(frontier);
     pfree(frontier_nhoods);
     pfree(frontier_nhoods_req);
     pfree(retset);
     pfree(full_retset);
+
+    return res_vector_ids;
+}
+
+/*
+ * Get proc
+ */
+FmgrInfo *
+VamanaOptionalProcInfo(Relation index, uint16 procnum)
+{
+    if (!OidIsValid(index_getprocid(index, 1, procnum)))
+        return NULL;
+
+    return index_getprocinfo(index, 1, procnum);
 }
 
 PGDLLEXPORT Datum l2_normalize(PG_FUNCTION_ARGS);
@@ -513,7 +595,9 @@ PGDLLEXPORT Datum l2_normalize(PG_FUNCTION_ARGS);
 const VamanaTypeInfo *
 VamanaGetTypeInfo(Relation index)
 {
-    FmgrInfo *procinfo = VamanaOptionalProcInfo(index, VAMANA_TYPE_INFO_PROC);
+    // 检查是否支持该函数
+    // FmgrInfo *procinfo = VamanaOptionalProcInfo(index, VAMANA_TYPE_INFO_PROC);
+    FmgrInfo *procinfo = NULL;
 
     if (procinfo == NULL)
     {

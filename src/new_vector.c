@@ -46,6 +46,28 @@ void new_vector_push_back(NewVector *vec, const void *value)
     vec->size++;
 }
 
+void new_vector_append(NewVector *vec, const NewVector *other)
+{
+    // 如果其他容器没有元素，则无需执行任何操作
+    if (other->size == 0)
+    {
+        return;
+    }
+
+    // 确保当前容器有足够的空间来容纳新元素
+    if (vec->size + other->size > vec->capacity)
+    {
+        new_vector_reserve(vec, vec->size + other->size); // 重新分配空间
+    }
+
+    // 将其他容器的元素逐一复制到当前容器的末尾
+    memcpy((char *)vec->data + vec->size * vec->elem_size,
+           other->data, other->size * vec->elem_size);
+
+    // 更新当前容器的 size
+    vec->size += other->size;
+}
+
 void new_vector_pop_back(NewVector *vec)
 {
     if (vec->size > 0)

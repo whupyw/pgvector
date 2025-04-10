@@ -192,7 +192,7 @@ typedef union
     struct pointerhash_hash *pointers;
     struct offsethash_hash *offsets;
     struct tidhash_hash *tids;
-} visited_hash;
+} my_visited_hash;
 
 typedef struct VamanaTypeInfo
 {
@@ -211,13 +211,15 @@ typedef struct VamanaScanOpaqueData
     const VamanaTypeInfo *typeInfo;
     bool first;
     List *w;
-    visited_hash v;
-    pairingheap *discarded;
-    VamanaQuery q;
+    //my_visited_hash v;
+    //pairingheap *discarded;
+    //VamanaQuery q;
     int m;
     int64 tuples;
     double previousDistance;
     Size maxMemory;
+    NewVector *heaptids_vectors;
+    uint32_t current_idx;
     MemoryContext tmpCtx;
 
     /* Support functions */
@@ -248,6 +250,8 @@ void vamanaendscan(IndexScanDesc scan);
 Buffer VamanaNewBuffer(Relation index, ForkNumber forkNum);
 bool create_index_table(char *index_name, char *table_name, int dimensions);
 void get_vectors_and_neighbors(char *index_table_name, NewVector *re_vectors, NewVector *target_vectors);
-bool search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
-                                int k, Vector *target, uint32_t vector_num);
+NewVector* search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
+                                     int k, Vector *target, uint32_t vector_num);
+FmgrInfo *VamanaOptionalProcInfo(Relation index, uint16 procnum);
+const VamanaTypeInfo *VamanaGetTypeInfo(Relation index);
 #endif /* VAMANA_H */

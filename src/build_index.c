@@ -55,8 +55,8 @@ size_t load_pq_pivots(const char *filename, void **data, uint32_t *num_centers, 
     size_t ndims_size_t = (size_t)ndims_i32;
 
     // size_t(num_centers_i32) * size_t(ndims_i32)
-    *data = palloc(num_centers_size_t * ndims_size_t * sizeof(float));
-    *centroid = palloc(ndims_size_t * sizeof(float));
+    *data = malloc(num_centers_size_t * ndims_size_t * sizeof(float));
+    *centroid = malloc(ndims_size_t * sizeof(float));
 
     expected_bytes = num_centers_size_t * ndims_size_t * sizeof(float) + ndims_size_t * sizeof(float);
     if (read(fd, *data, num_centers_size_t * ndims_size_t * sizeof(float)) != (ssize_t)(num_centers_size_t * ndims_size_t * sizeof(float)) ||
@@ -69,7 +69,7 @@ size_t load_pq_pivots(const char *filename, void **data, uint32_t *num_centers, 
     bytes_read += expected_bytes;
 
     //*num_chunks = *num_centers; // 这里假设 num_chunks = num_centers
-    *chunk_offsets = palloc((*num_chunks + 1) * sizeof(size_t));
+    *chunk_offsets = malloc((*num_chunks + 1) * sizeof(size_t));
     expected_bytes = (*num_chunks + 1) * sizeof(size_t);
     if (read(fd, *chunk_offsets, expected_bytes) != (ssize_t)expected_bytes)
     {

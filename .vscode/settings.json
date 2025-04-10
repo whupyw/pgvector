@@ -33,6 +33,9 @@
         "parallel.h": "c",
         "pairingheap.h": "c",
         "iterator": "c",
-        "chrono": "c"
+        "chrono": "c",
+        "pgstat.h": "c",
+        "timestamp.h": "c",
+        "relscan.h": "c"
     }
 }

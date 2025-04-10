@@ -20,6 +20,9 @@ void new_vector_init_with_capacity(NewVector *vec, size_t elem_size, size_t capa
 // 添加元素
 void new_vector_push_back(NewVector *vec, const void *value);
 
+// 将另一个容器的所有元素放到当前容器的末尾
+void new_vector_append(NewVector *vec, const NewVector *other);
+
 // 删除最后一个元素
 void new_vector_pop_back(NewVector *vec);
 
