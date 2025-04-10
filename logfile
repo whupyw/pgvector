@@ -192760,3 +192760,419 @@ free(): invalid next size (fast)
 2025-04-10 22:07:30.074 CST [54112] LOG:  checkpoint starting: end-of-recovery immediate wait
 2025-04-10 22:07:30.192 CST [54112] LOG:  checkpoint complete: wrote 2094 buffers (12.8%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.021 s, sync=0.074 s, total=0.123 s; sync files=92, longest=0.013 s, average=0.001 s; distance=19101 kB, estimate=19101 kB; lsn=1/60C96570, redo lsn=1/60C96570
 2025-04-10 22:07:30.200 CST [22895] LOG:  database system is ready to accept connections
+2025-04-10 22:10:01.762 CST [917] LOG:  starting PostgreSQL 17.4 on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, 64-bit
+2025-04-10 22:10:01.763 CST [917] LOG:  listening on IPv4 address "127.0.0.1", port 5433
+2025-04-10 22:10:01.773 CST [917] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5433"
+2025-04-10 22:10:01.786 CST [920] LOG:  database system was interrupted; last known up at 2025-04-10 22:07:30 CST
+2025-04-10 22:10:02.520 CST [920] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-04-10 22:10:02.528 CST [920] LOG:  redo starts at 1/60C965E8
+2025-04-10 22:10:02.528 CST [920] LOG:  invalid record length at 1/60C96620: expected at least 24, got 0
+2025-04-10 22:10:02.528 CST [920] LOG:  redo done at 1/60C965E8 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2025-04-10 22:10:02.535 CST [918] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-04-10 22:10:02.573 CST [918] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.014 s, sync=0.006 s, total=0.043 s; sync files=2, longest=0.003 s, average=0.003 s; distance=0 kB, estimate=0 kB; lsn=1/60C96620, redo lsn=1/60C96620
+2025-04-10 22:10:02.577 CST [917] LOG:  database system is ready to accept connections
+2025-04-10 22:10:05.551 CST [980] INFO:  Starting FBIN import from: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test.fvecs
+2025-04-10 22:10:05.563 CST [980] INFO:  Detected vector dimension: 128
+2025-04-10 22:10:05.680 CST [980] INFO:  Inserted 1000 records
+2025-04-10 22:10:05.772 CST [980] INFO:  Inserted 2000 records
+2025-04-10 22:10:05.884 CST [980] INFO:  Inserted 3000 records
+2025-04-10 22:10:05.999 CST [980] INFO:  Inserted 4000 records
+2025-04-10 22:10:06.093 CST [980] INFO:  Inserted 5000 records
+2025-04-10 22:10:06.183 CST [980] INFO:  Inserted 6000 records
+2025-04-10 22:10:06.299 CST [980] INFO:  Inserted 7000 records
+2025-04-10 22:10:06.399 CST [980] INFO:  Inserted 8000 records
+2025-04-10 22:10:06.505 CST [980] INFO:  Inserted 9000 records
+2025-04-10 22:10:06.603 CST [980] INFO:  Inserted 10000 records
+2025-04-10 22:10:06.699 CST [980] INFO:  Inserted 11000 records
+2025-04-10 22:10:06.795 CST [980] INFO:  Inserted 12000 records
+2025-04-10 22:10:06.896 CST [980] INFO:  Inserted 13000 records
+2025-04-10 22:10:06.989 CST [980] INFO:  Inserted 14000 records
+2025-04-10 22:10:07.095 CST [980] INFO:  Inserted 15000 records
+2025-04-10 22:10:07.188 CST [980] INFO:  Inserted 16000 records
+2025-04-10 22:10:07.311 CST [980] INFO:  Inserted 17000 records
+2025-04-10 22:10:07.415 CST [980] INFO:  Inserted 18000 records
+2025-04-10 22:10:07.522 CST [980] INFO:  Inserted 19000 records
+2025-04-10 22:10:07.627 CST [980] INFO:  Inserted 20000 records
+2025-04-10 22:10:07.720 CST [980] INFO:  Inserted 21000 records
+2025-04-10 22:10:07.819 CST [980] INFO:  Inserted 22000 records
+2025-04-10 22:10:07.912 CST [980] INFO:  Inserted 23000 records
+2025-04-10 22:10:08.031 CST [980] INFO:  Inserted 24000 records
+2025-04-10 22:10:08.129 CST [980] INFO:  Inserted 25000 records
+2025-04-10 22:10:08.130 CST [980] INFO:  Successfully imported 25000 vectors
+2025-04-10 22:10:08.167 CST [980] INFO:  vamanabuild()
+2025-04-10 22:10:08.167 CST [980] INFO:  InitGraph
+2025-04-10 22:10:08.168 CST [980] INFO:  InitGraph end
+2025-04-10 22:10:08.168 CST [980] INFO:  create table sql: CREATE TABLE IF NOT EXISTS vectors_index_table (id SERIAL PRIMARY KEY,vector_id INTEGER UNIQUE,embedding vector(128),neighbors integer[]);
+2025-04-10 22:10:08.172 CST [980] INFO:  insert sql: INSERT INTO vectors_index_table (vector_id, embedding) SELECT id - 1 AS vector_id,embedding FROM vectors;
+2025-04-10 22:10:08.178 CST [980] INFO:  Hello, Vamana!
+2025-04-10 22:10:08.178 CST [980] LOG:  debug line_number_119:
+2025-04-10 22:10:08.178 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.178 CST [980] LOG:  debug line_number_120:
+2025-04-10 22:10:08.178 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.178 CST [980] LOG:  debug line_number_126:
+2025-04-10 22:10:08.178 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.178 CST [980] LOG:  参数解析完成: R=10, L=20, final_index_ram_limit=200.00, indexing_ram_budget=1.00, 线程数=1
+2025-04-10 22:10:08.178 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.179 CST [980] LOG:  开始构建索引: R=10, L=20, 线程数=1
+2025-04-10 22:10:08.179 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.179 CST [980] LOG:  开始获取向量维度与行数
+2025-04-10 22:10:08.179 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.180 CST [980] LOG:  数据点数量 npts = 100
+2025-04-10 22:10:08.180 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.180 CST [980] LOG:  向量维度 ndims = 128
+2025-04-10 22:10:08.180 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.180 CST [980] LOG:  start load_vector_data
+2025-04-10 22:10:08.180 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.181 CST [980] LOG:  print npts = 100, ndims = 128
+2025-04-10 22:10:08.181 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.181 CST [980] LOG:  ready for loop
+2025-04-10 22:10:08.181 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.181 CST [980] LOG:  start generate_quantized_data
+2025-04-10 22:10:08.181 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.181 CST [980] LOG:  file_exists:/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin
+2025-04-10 22:10:08.181 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.182 CST [980] LOG:  Skip Training with predefined pivots in: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin
+2025-04-10 22:10:08.182 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.182 CST [980] LOG:  Generating PQ compressed data
+2025-04-10 22:10:08.182 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.182 CST [980] LOG:  file_exists:/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_compressed_vectors.bin
+2025-04-10 22:10:08.182 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.183 CST [980] LOG:  Skip Generating PQ compressed data
+2025-04-10 22:10:08.183 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.183 CST [980] LOG:  开始构建索引
+2025-04-10 22:10:08.183 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.184 CST [980] INFO:  Full index fits in RAM budget: 0.00 GiB
+2025-04-10 22:10:08.184 CST [980] LOG:  Reading binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin
+2025-04-10 22:10:08.184 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.186 CST [980] LOG:  Finished reading binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin, total bytes read: 131664
+2025-04-10 22:10:08.186 CST [980] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:10:08.188 CST [980] INFO:  check neighbors size
+2025-04-10 22:10:08.188 CST [980] INFO:  Inter-inserting neighbors for node 0
+2025-04-10 22:10:08.188 CST [980] INFO:  Inter-inserting neighbors for node 1
+2025-04-10 22:10:08.189 CST [980] INFO:  Inter-inserting neighbors for node 2
+2025-04-10 22:10:08.189 CST [980] INFO:  Inter-inserting neighbors for node 3
+2025-04-10 22:10:08.189 CST [980] INFO:  Inter-inserting neighbors for node 4
+2025-04-10 22:10:08.189 CST [980] INFO:  Inter-inserting neighbors for node 5
+2025-04-10 22:10:08.190 CST [980] INFO:  Inter-inserting neighbors for node 6
+2025-04-10 22:10:08.190 CST [980] INFO:  Inter-inserting neighbors for node 7
+2025-04-10 22:10:08.190 CST [980] INFO:  Inter-inserting neighbors for node 8
+2025-04-10 22:10:08.191 CST [980] INFO:  Inter-inserting neighbors for node 9
+2025-04-10 22:10:08.191 CST [980] INFO:  Inter-inserting neighbors for node 10
+2025-04-10 22:10:08.191 CST [980] INFO:  Inter-inserting neighbors for node 11
+2025-04-10 22:10:08.191 CST [980] INFO:  Inter-inserting neighbors for node 12
+2025-04-10 22:10:08.192 CST [980] INFO:  Inter-inserting neighbors for node 13
+2025-04-10 22:10:08.192 CST [980] INFO:  Inter-inserting neighbors for node 14
+2025-04-10 22:10:08.192 CST [980] INFO:  Inter-inserting neighbors for node 15
+2025-04-10 22:10:08.192 CST [980] INFO:  Inter-inserting neighbors for node 16
+2025-04-10 22:10:08.193 CST [980] INFO:  Inter-inserting neighbors for node 17
+2025-04-10 22:10:08.193 CST [980] INFO:  Inter-inserting neighbors for node 18
+2025-04-10 22:10:08.193 CST [980] INFO:  Inter-inserting neighbors for node 19
+2025-04-10 22:10:08.193 CST [980] INFO:  Inter-inserting neighbors for node 20
+2025-04-10 22:10:08.193 CST [980] INFO:  Inter-inserting neighbors for node 21
+2025-04-10 22:10:08.194 CST [980] INFO:  Inter-inserting neighbors for node 22
+2025-04-10 22:10:08.194 CST [980] INFO:  Inter-inserting neighbors for node 23
+2025-04-10 22:10:08.194 CST [980] INFO:  Inter-inserting neighbors for node 24
+2025-04-10 22:10:08.194 CST [980] INFO:  Inter-inserting neighbors for node 25
+2025-04-10 22:10:08.194 CST [980] INFO:  Inter-inserting neighbors for node 26
+2025-04-10 22:10:08.195 CST [980] INFO:  Inter-inserting neighbors for node 27
+2025-04-10 22:10:08.195 CST [980] INFO:  Inter-inserting neighbors for node 28
+2025-04-10 22:10:08.195 CST [980] INFO:  Inter-inserting neighbors for node 29
+2025-04-10 22:10:08.196 CST [980] INFO:  Inter-inserting neighbors for node 30
+2025-04-10 22:10:08.196 CST [980] INFO:  Inter-inserting neighbors for node 31
+2025-04-10 22:10:08.197 CST [980] INFO:  Inter-inserting neighbors for node 32
+2025-04-10 22:10:08.197 CST [980] INFO:  Inter-inserting neighbors for node 33
+2025-04-10 22:10:08.197 CST [980] INFO:  Inter-inserting neighbors for node 34
+2025-04-10 22:10:08.197 CST [980] INFO:  Inter-inserting neighbors for node 35
+2025-04-10 22:10:08.197 CST [980] INFO:  Inter-inserting neighbors for node 36
+2025-04-10 22:10:08.197 CST [980] INFO:  Inter-inserting neighbors for node 37
+2025-04-10 22:10:08.198 CST [980] INFO:  Inter-inserting neighbors for node 38
+2025-04-10 22:10:08.198 CST [980] INFO:  Inter-inserting neighbors for node 39
+2025-04-10 22:10:08.198 CST [980] INFO:  Inter-inserting neighbors for node 40
+2025-04-10 22:10:08.198 CST [980] INFO:  Inter-inserting neighbors for node 41
+2025-04-10 22:10:08.199 CST [980] INFO:  Inter-inserting neighbors for node 42
+2025-04-10 22:10:08.199 CST [980] INFO:  Inter-inserting neighbors for node 43
+2025-04-10 22:10:08.199 CST [980] INFO:  Inter-inserting neighbors for node 44
+2025-04-10 22:10:08.199 CST [980] INFO:  Inter-inserting neighbors for node 45
+2025-04-10 22:10:08.199 CST [980] INFO:  Inter-inserting neighbors for node 46
+2025-04-10 22:10:08.200 CST [980] INFO:  Inter-inserting neighbors for node 47
+2025-04-10 22:10:08.200 CST [980] INFO:  Inter-inserting neighbors for node 48
+2025-04-10 22:10:08.200 CST [980] INFO:  Inter-inserting neighbors for node 49
+2025-04-10 22:10:08.200 CST [980] INFO:  Inter-inserting neighbors for node 50
+2025-04-10 22:10:08.201 CST [980] INFO:  Inter-inserting neighbors for node 51
+2025-04-10 22:10:08.201 CST [980] INFO:  Inter-inserting neighbors for node 52
+2025-04-10 22:10:08.201 CST [980] INFO:  Inter-inserting neighbors for node 53
+2025-04-10 22:10:08.201 CST [980] INFO:  Inter-inserting neighbors for node 54
+2025-04-10 22:10:08.202 CST [980] INFO:  Inter-inserting neighbors for node 55
+2025-04-10 22:10:08.202 CST [980] INFO:  Inter-inserting neighbors for node 56
+2025-04-10 22:10:08.202 CST [980] INFO:  Inter-inserting neighbors for node 57
+2025-04-10 22:10:08.202 CST [980] INFO:  Inter-inserting neighbors for node 58
+2025-04-10 22:10:08.203 CST [980] INFO:  Inter-inserting neighbors for node 59
+2025-04-10 22:10:08.203 CST [980] INFO:  Inter-inserting neighbors for node 60
+2025-04-10 22:10:08.203 CST [980] INFO:  Inter-inserting neighbors for node 61
+2025-04-10 22:10:08.203 CST [980] INFO:  Inter-inserting neighbors for node 62
+2025-04-10 22:10:08.203 CST [980] INFO:  Inter-inserting neighbors for node 63
+2025-04-10 22:10:08.203 CST [980] INFO:  Inter-inserting neighbors for node 64
+2025-04-10 22:10:08.204 CST [980] INFO:  Inter-inserting neighbors for node 65
+2025-04-10 22:10:08.205 CST [980] INFO:  Inter-inserting neighbors for node 66
+2025-04-10 22:10:08.205 CST [980] INFO:  Inter-inserting neighbors for node 67
+2025-04-10 22:10:08.206 CST [980] INFO:  Inter-inserting neighbors for node 68
+2025-04-10 22:10:08.206 CST [980] INFO:  Inter-inserting neighbors for node 69
+2025-04-10 22:10:08.207 CST [980] INFO:  Inter-inserting neighbors for node 70
+2025-04-10 22:10:08.207 CST [980] INFO:  Inter-inserting neighbors for node 71
+2025-04-10 22:10:08.208 CST [980] INFO:  Inter-inserting neighbors for node 72
+2025-04-10 22:10:08.208 CST [980] INFO:  Inter-inserting neighbors for node 73
+2025-04-10 22:10:08.208 CST [980] INFO:  Inter-inserting neighbors for node 74
+2025-04-10 22:10:08.209 CST [980] INFO:  Inter-inserting neighbors for node 75
+2025-04-10 22:10:08.209 CST [980] INFO:  Inter-inserting neighbors for node 76
+2025-04-10 22:10:08.209 CST [980] INFO:  Inter-inserting neighbors for node 77
+2025-04-10 22:10:08.210 CST [980] INFO:  Inter-inserting neighbors for node 78
+2025-04-10 22:10:08.211 CST [980] INFO:  Inter-inserting neighbors for node 79
+2025-04-10 22:10:08.211 CST [980] INFO:  Inter-inserting neighbors for node 80
+2025-04-10 22:10:08.212 CST [980] INFO:  Inter-inserting neighbors for node 81
+2025-04-10 22:10:08.212 CST [980] INFO:  Inter-inserting neighbors for node 82
+2025-04-10 22:10:08.212 CST [980] INFO:  Inter-inserting neighbors for node 83
+2025-04-10 22:10:08.213 CST [980] INFO:  Inter-inserting neighbors for node 84
+2025-04-10 22:10:08.214 CST [980] INFO:  Inter-inserting neighbors for node 85
+2025-04-10 22:10:08.214 CST [980] INFO:  Inter-inserting neighbors for node 86
+2025-04-10 22:10:08.214 CST [980] INFO:  Inter-inserting neighbors for node 87
+2025-04-10 22:10:08.214 CST [980] INFO:  Inter-inserting neighbors for node 88
+2025-04-10 22:10:08.215 CST [980] INFO:  Inter-inserting neighbors for node 89
+2025-04-10 22:10:08.215 CST [980] INFO:  Inter-inserting neighbors for node 90
+2025-04-10 22:10:08.215 CST [980] INFO:  Inter-inserting neighbors for node 91
+2025-04-10 22:10:08.216 CST [980] INFO:  Inter-inserting neighbors for node 92
+2025-04-10 22:10:08.216 CST [980] INFO:  Inter-inserting neighbors for node 93
+2025-04-10 22:10:08.216 CST [980] INFO:  Inter-inserting neighbors for node 94
+2025-04-10 22:10:08.217 CST [980] INFO:  Inter-inserting neighbors for node 95
+2025-04-10 22:10:08.217 CST [980] INFO:  Inter-inserting neighbors for node 96
+2025-04-10 22:10:08.217 CST [980] INFO:  Inter-inserting neighbors for node 97
+2025-04-10 22:10:08.218 CST [980] INFO:  Inter-inserting neighbors for node 98
+2025-04-10 22:10:08.218 CST [980] INFO:  Inter-inserting neighbors for node 99
+2025-04-10 22:10:08.218 CST [980] INFO:  Final pruning started.
+2025-04-10 22:10:08.222 CST [980] INFO:  Linking completed.
+2025-04-10 22:10:08.222 CST [980] INFO:  create disk layout
+2025-04-10 22:10:08.222 CST [980] INFO:  Number of records: 100
+2025-04-10 22:10:08.228 CST [980] INFO:  vamanabuild() end
+2025-04-10 22:10:10.701 CST [980] INFO:  vamana beginscan
+2025-04-10 22:10:10.702 CST [980] INFO:  GetScanValue
+2025-04-10 22:10:10.703 CST [980] INFO:  GetScanValue is not null
+2025-04-10 22:10:10.703 CST [980] INFO:  target vector:
+2025-04-10 22:10:13.763 CST [917] LOG:  server process (PID 980) was terminated by signal 11: Segmentation fault
+2025-04-10 22:10:13.763 CST [917] DETAIL:  Failed process was running: select id from vectors ORDER BY embedding <-> '[2,8,6,8,2,34,20,0,2,49,76,20,6,27,21,10,39,101,83,12,11,9,13,8,8,9,8,18,94,23,0,0,74,40,16,9,13,3,1,19,106,119,119,15,4,1,3,22,0,57,119,56,81,9,2,0,6,54,26,45,119,15,0,0,98,17,3,16,56,16,6,34,119,10,1,2,2,8,44,119,0,0,4,33,71,26,81,28,7,33,39,62,93,13,4,8,30,19,0,0,9,46,10,18,54,22,8,10,5,16,59,86,1,0,1,16,6,25,119,94,0,0,1,9,31,21,41,40]' LIMIT 10;
+2025-04-10 22:10:13.764 CST [917] LOG:  terminating any other active server processes
+2025-04-10 22:10:13.765 CST [1055] FATAL:  the database system is in recovery mode
+2025-04-10 22:10:13.765 CST [917] LOG:  all server processes terminated; reinitializing
+2025-04-10 22:10:13.786 CST [1056] LOG:  database system was interrupted; last known up at 2025-04-10 22:10:02 CST
+2025-04-10 22:10:14.543 CST [1056] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-04-10 22:10:14.549 CST [1056] LOG:  redo starts at 1/60C96698
+2025-04-10 22:10:14.641 CST [1056] LOG:  invalid record length at 1/61F3BD00: expected at least 24, got 0
+2025-04-10 22:10:14.641 CST [1056] LOG:  redo done at 1/61F3B428 system usage: CPU: user: 0.08 s, system: 0.00 s, elapsed: 0.09 s
+2025-04-10 22:10:14.655 CST [1057] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-04-10 22:10:14.761 CST [1057] LOG:  checkpoint complete: wrote 2079 buffers (12.7%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.018 s, sync=0.065 s, total=0.110 s; sync files=88, longest=0.008 s, average=0.001 s; distance=19093 kB, estimate=19093 kB; lsn=1/61F3BD00, redo lsn=1/61F3BD00
+2025-04-10 22:10:14.771 CST [917] LOG:  database system is ready to accept connections
+2025-04-10 22:10:41.148 CST [1197] INFO:  vamana beginscan
+2025-04-10 22:10:44.698 CST [1197] INFO:  GetScanValue
+2025-04-10 22:10:47.798 CST [1197] INFO:  GetScanValue is null
+2025-04-10 22:10:59.192 CST [1197] INFO:  query: SELECT vector_id, embedding, neighbors FROM vectors_index_table WHERE vector_id IN (30) ORDER BY CASE vector_id WHEN 30 THEN 1 END
+2025-04-10 22:10:59.194 CST [1197] INFO:  get_distance starts
+2025-04-10 22:10:59.194 CST [1197] ERROR:  static_compressed_data or static_pivot_data is NULL
+2025-04-10 22:10:59.194 CST [1197] STATEMENT:  select id from vectors ORDER BY embedding <-> '[2,8,6,8,2,34,20,0,2,49,76,20,6,27,21,10,39,101,83,12,11,9,13,8,8,9,8,18,94,23,0,0,74,40,16,9,13,3,1,19,106,119,119,15,4,1,3,22,0,57,119,56,81,9,2,0,6,54,26,45,119,15,0,0,98,17,3,16,56,16,6,34,119,10,1,2,2,8,44,119,0,0,4,33,71,26,81,28,7,33,39,62,93,13,4,8,30,19,0,0,9,46,10,18,54,22,8,10,5,16,59,86,1,0,1,16,6,25,119,94,0,0,1,9,31,21,41,40]' LIMIT 10;
+2025-04-10 22:11:06.043 CST [1197] INFO:  Starting FBIN import from: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test.fvecs
+2025-04-10 22:11:06.049 CST [1197] INFO:  Detected vector dimension: 128
+2025-04-10 22:11:06.161 CST [1197] INFO:  Inserted 1000 records
+2025-04-10 22:11:06.258 CST [1197] INFO:  Inserted 2000 records
+2025-04-10 22:11:06.355 CST [1197] INFO:  Inserted 3000 records
+2025-04-10 22:11:06.473 CST [1197] INFO:  Inserted 4000 records
+2025-04-10 22:11:06.571 CST [1197] INFO:  Inserted 5000 records
+2025-04-10 22:11:06.678 CST [1197] INFO:  Inserted 6000 records
+2025-04-10 22:11:06.827 CST [1197] INFO:  Inserted 7000 records
+2025-04-10 22:11:06.920 CST [1197] INFO:  Inserted 8000 records
+2025-04-10 22:11:07.046 CST [1197] INFO:  Inserted 9000 records
+2025-04-10 22:11:07.146 CST [1197] INFO:  Inserted 10000 records
+2025-04-10 22:11:07.243 CST [1197] INFO:  Inserted 11000 records
+2025-04-10 22:11:07.336 CST [1197] INFO:  Inserted 12000 records
+2025-04-10 22:11:07.426 CST [1197] INFO:  Inserted 13000 records
+2025-04-10 22:11:07.548 CST [1197] INFO:  Inserted 14000 records
+2025-04-10 22:11:07.650 CST [1197] INFO:  Inserted 15000 records
+2025-04-10 22:11:07.743 CST [1197] INFO:  Inserted 16000 records
+2025-04-10 22:11:07.839 CST [1197] INFO:  Inserted 17000 records
+2025-04-10 22:11:07.930 CST [1197] INFO:  Inserted 18000 records
+2025-04-10 22:11:08.026 CST [1197] INFO:  Inserted 19000 records
+2025-04-10 22:11:08.122 CST [1197] INFO:  Inserted 20000 records
+2025-04-10 22:11:08.224 CST [1197] INFO:  Inserted 21000 records
+2025-04-10 22:11:08.332 CST [1197] INFO:  Inserted 22000 records
+2025-04-10 22:11:08.436 CST [1197] INFO:  Inserted 23000 records
+2025-04-10 22:11:08.589 CST [1197] INFO:  Inserted 24000 records
+2025-04-10 22:11:08.685 CST [1197] INFO:  Inserted 25000 records
+2025-04-10 22:11:08.686 CST [1197] INFO:  Successfully imported 25000 vectors
+2025-04-10 22:11:08.725 CST [1197] INFO:  vamanabuild()
+2025-04-10 22:11:08.725 CST [1197] INFO:  InitGraph
+2025-04-10 22:11:08.725 CST [1197] INFO:  InitGraph end
+2025-04-10 22:11:08.726 CST [1197] INFO:  create table sql: CREATE TABLE IF NOT EXISTS vectors_index_table (id SERIAL PRIMARY KEY,vector_id INTEGER UNIQUE,embedding vector(128),neighbors integer[]);
+2025-04-10 22:11:08.729 CST [1197] INFO:  insert sql: INSERT INTO vectors_index_table (vector_id, embedding) SELECT id - 1 AS vector_id,embedding FROM vectors;
+2025-04-10 22:11:08.735 CST [1197] INFO:  Hello, Vamana!
+2025-04-10 22:11:08.735 CST [1197] LOG:  debug line_number_119:
+2025-04-10 22:11:08.735 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.735 CST [1197] LOG:  debug line_number_120:
+2025-04-10 22:11:08.735 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.735 CST [1197] LOG:  debug line_number_126:
+2025-04-10 22:11:08.735 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.736 CST [1197] LOG:  参数解析完成: R=10, L=20, final_index_ram_limit=200.00, indexing_ram_budget=1.00, 线程数=1
+2025-04-10 22:11:08.736 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.736 CST [1197] LOG:  开始构建索引: R=10, L=20, 线程数=1
+2025-04-10 22:11:08.736 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.736 CST [1197] LOG:  开始获取向量维度与行数
+2025-04-10 22:11:08.736 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.736 CST [1197] LOG:  数据点数量 npts = 100
+2025-04-10 22:11:08.736 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.737 CST [1197] LOG:  向量维度 ndims = 128
+2025-04-10 22:11:08.737 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.737 CST [1197] LOG:  start load_vector_data
+2025-04-10 22:11:08.737 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.737 CST [1197] LOG:  print npts = 100, ndims = 128
+2025-04-10 22:11:08.737 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.737 CST [1197] LOG:  ready for loop
+2025-04-10 22:11:08.737 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.737 CST [1197] LOG:  start generate_quantized_data
+2025-04-10 22:11:08.737 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.737 CST [1197] LOG:  file_exists:/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin
+2025-04-10 22:11:08.737 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.739 CST [1197] LOG:  Skip Training with predefined pivots in: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin
+2025-04-10 22:11:08.739 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.739 CST [1197] LOG:  Generating PQ compressed data
+2025-04-10 22:11:08.739 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.739 CST [1197] LOG:  file_exists:/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_compressed_vectors.bin
+2025-04-10 22:11:08.739 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.740 CST [1197] LOG:  Skip Generating PQ compressed data
+2025-04-10 22:11:08.740 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.740 CST [1197] LOG:  开始构建索引
+2025-04-10 22:11:08.740 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.740 CST [1197] INFO:  Full index fits in RAM budget: 0.00 GiB
+2025-04-10 22:11:08.740 CST [1197] LOG:  Reading binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin
+2025-04-10 22:11:08.740 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.743 CST [1197] LOG:  Finished reading binary file: /mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin, total bytes read: 131664
+2025-04-10 22:11:08.743 CST [1197] STATEMENT:  CREATE INDEX ON vectors USING vamana (embedding vector_vamana_l2_ops);
+2025-04-10 22:11:08.744 CST [1197] INFO:  check neighbors size
+2025-04-10 22:11:08.744 CST [1197] INFO:  Inter-inserting neighbors for node 0
+2025-04-10 22:11:08.745 CST [1197] INFO:  Inter-inserting neighbors for node 1
+2025-04-10 22:11:08.745 CST [1197] INFO:  Inter-inserting neighbors for node 2
+2025-04-10 22:11:08.745 CST [1197] INFO:  Inter-inserting neighbors for node 3
+2025-04-10 22:11:08.745 CST [1197] INFO:  Inter-inserting neighbors for node 4
+2025-04-10 22:11:08.745 CST [1197] INFO:  Inter-inserting neighbors for node 5
+2025-04-10 22:11:08.745 CST [1197] INFO:  Inter-inserting neighbors for node 6
+2025-04-10 22:11:08.745 CST [1197] INFO:  Inter-inserting neighbors for node 7
+2025-04-10 22:11:08.746 CST [1197] INFO:  Inter-inserting neighbors for node 8
+2025-04-10 22:11:08.746 CST [1197] INFO:  Inter-inserting neighbors for node 9
+2025-04-10 22:11:08.746 CST [1197] INFO:  Inter-inserting neighbors for node 10
+2025-04-10 22:11:08.746 CST [1197] INFO:  Inter-inserting neighbors for node 11
+2025-04-10 22:11:08.746 CST [1197] INFO:  Inter-inserting neighbors for node 12
+2025-04-10 22:11:08.746 CST [1197] INFO:  Inter-inserting neighbors for node 13
+2025-04-10 22:11:08.747 CST [1197] INFO:  Inter-inserting neighbors for node 14
+2025-04-10 22:11:08.747 CST [1197] INFO:  Inter-inserting neighbors for node 15
+2025-04-10 22:11:08.747 CST [1197] INFO:  Inter-inserting neighbors for node 16
+2025-04-10 22:11:08.747 CST [1197] INFO:  Inter-inserting neighbors for node 17
+2025-04-10 22:11:08.748 CST [1197] INFO:  Inter-inserting neighbors for node 18
+2025-04-10 22:11:08.749 CST [1197] INFO:  Inter-inserting neighbors for node 19
+2025-04-10 22:11:08.749 CST [1197] INFO:  Inter-inserting neighbors for node 20
+2025-04-10 22:11:08.750 CST [1197] INFO:  Inter-inserting neighbors for node 21
+2025-04-10 22:11:08.752 CST [1197] INFO:  Inter-inserting neighbors for node 22
+2025-04-10 22:11:08.753 CST [1197] INFO:  Inter-inserting neighbors for node 23
+2025-04-10 22:11:08.753 CST [1197] INFO:  Inter-inserting neighbors for node 24
+2025-04-10 22:11:08.753 CST [1197] INFO:  Inter-inserting neighbors for node 25
+2025-04-10 22:11:08.754 CST [1197] INFO:  Inter-inserting neighbors for node 26
+2025-04-10 22:11:08.754 CST [1197] INFO:  Inter-inserting neighbors for node 27
+2025-04-10 22:11:08.755 CST [1197] INFO:  Inter-inserting neighbors for node 28
+2025-04-10 22:11:08.755 CST [1197] INFO:  Inter-inserting neighbors for node 29
+2025-04-10 22:11:08.755 CST [1197] INFO:  Inter-inserting neighbors for node 30
+2025-04-10 22:11:08.755 CST [1197] INFO:  Inter-inserting neighbors for node 31
+2025-04-10 22:11:08.755 CST [1197] INFO:  Inter-inserting neighbors for node 32
+2025-04-10 22:11:08.756 CST [1197] INFO:  Inter-inserting neighbors for node 33
+2025-04-10 22:11:08.756 CST [1197] INFO:  Inter-inserting neighbors for node 34
+2025-04-10 22:11:08.756 CST [1197] INFO:  Inter-inserting neighbors for node 35
+2025-04-10 22:11:08.756 CST [1197] INFO:  Inter-inserting neighbors for node 36
+2025-04-10 22:11:08.756 CST [1197] INFO:  Inter-inserting neighbors for node 37
+2025-04-10 22:11:08.757 CST [1197] INFO:  Inter-inserting neighbors for node 38
+2025-04-10 22:11:08.757 CST [1197] INFO:  Inter-inserting neighbors for node 39
+2025-04-10 22:11:08.757 CST [1197] INFO:  Inter-inserting neighbors for node 40
+2025-04-10 22:11:08.758 CST [1197] INFO:  Inter-inserting neighbors for node 41
+2025-04-10 22:11:08.758 CST [1197] INFO:  Inter-inserting neighbors for node 42
+2025-04-10 22:11:08.758 CST [1197] INFO:  Inter-inserting neighbors for node 43
+2025-04-10 22:11:08.758 CST [1197] INFO:  Inter-inserting neighbors for node 44
+2025-04-10 22:11:08.758 CST [1197] INFO:  Inter-inserting neighbors for node 45
+2025-04-10 22:11:08.759 CST [1197] INFO:  Inter-inserting neighbors for node 46
+2025-04-10 22:11:08.759 CST [1197] INFO:  Inter-inserting neighbors for node 47
+2025-04-10 22:11:08.760 CST [1197] INFO:  Inter-inserting neighbors for node 48
+2025-04-10 22:11:08.760 CST [1197] INFO:  Inter-inserting neighbors for node 49
+2025-04-10 22:11:08.760 CST [1197] INFO:  Inter-inserting neighbors for node 50
+2025-04-10 22:11:08.761 CST [1197] INFO:  Inter-inserting neighbors for node 51
+2025-04-10 22:11:08.761 CST [1197] INFO:  Inter-inserting neighbors for node 52
+2025-04-10 22:11:08.761 CST [1197] INFO:  Inter-inserting neighbors for node 53
+2025-04-10 22:11:08.762 CST [1197] INFO:  Inter-inserting neighbors for node 54
+2025-04-10 22:11:08.762 CST [1197] INFO:  Inter-inserting neighbors for node 55
+2025-04-10 22:11:08.762 CST [1197] INFO:  Inter-inserting neighbors for node 56
+2025-04-10 22:11:08.762 CST [1197] INFO:  Inter-inserting neighbors for node 57
+2025-04-10 22:11:08.764 CST [1197] INFO:  Inter-inserting neighbors for node 58
+2025-04-10 22:11:08.764 CST [1197] INFO:  Inter-inserting neighbors for node 59
+2025-04-10 22:11:08.765 CST [1197] INFO:  Inter-inserting neighbors for node 60
+2025-04-10 22:11:08.765 CST [1197] INFO:  Inter-inserting neighbors for node 61
+2025-04-10 22:11:08.765 CST [1197] INFO:  Inter-inserting neighbors for node 62
+2025-04-10 22:11:08.766 CST [1197] INFO:  Inter-inserting neighbors for node 63
+2025-04-10 22:11:08.766 CST [1197] INFO:  Inter-inserting neighbors for node 64
+2025-04-10 22:11:08.766 CST [1197] INFO:  Inter-inserting neighbors for node 65
+2025-04-10 22:11:08.767 CST [1197] INFO:  Inter-inserting neighbors for node 66
+2025-04-10 22:11:08.767 CST [1197] INFO:  Inter-inserting neighbors for node 67
+2025-04-10 22:11:08.767 CST [1197] INFO:  Inter-inserting neighbors for node 68
+2025-04-10 22:11:08.768 CST [1197] INFO:  Inter-inserting neighbors for node 69
+2025-04-10 22:11:08.768 CST [1197] INFO:  Inter-inserting neighbors for node 70
+2025-04-10 22:11:08.768 CST [1197] INFO:  Inter-inserting neighbors for node 71
+2025-04-10 22:11:08.768 CST [1197] INFO:  Inter-inserting neighbors for node 72
+2025-04-10 22:11:08.769 CST [1197] INFO:  Inter-inserting neighbors for node 73
+2025-04-10 22:11:08.769 CST [1197] INFO:  Inter-inserting neighbors for node 74
+2025-04-10 22:11:08.769 CST [1197] INFO:  Inter-inserting neighbors for node 75
+2025-04-10 22:11:08.769 CST [1197] INFO:  Inter-inserting neighbors for node 76
+2025-04-10 22:11:08.770 CST [1197] INFO:  Inter-inserting neighbors for node 77
+2025-04-10 22:11:08.770 CST [1197] INFO:  Inter-inserting neighbors for node 78
+2025-04-10 22:11:08.770 CST [1197] INFO:  Inter-inserting neighbors for node 79
+2025-04-10 22:11:08.770 CST [1197] INFO:  Inter-inserting neighbors for node 80
+2025-04-10 22:11:08.771 CST [1197] INFO:  Inter-inserting neighbors for node 81
+2025-04-10 22:11:08.771 CST [1197] INFO:  Inter-inserting neighbors for node 82
+2025-04-10 22:11:08.771 CST [1197] INFO:  Inter-inserting neighbors for node 83
+2025-04-10 22:11:08.771 CST [1197] INFO:  Inter-inserting neighbors for node 84
+2025-04-10 22:11:08.771 CST [1197] INFO:  Inter-inserting neighbors for node 85
+2025-04-10 22:11:08.772 CST [1197] INFO:  Inter-inserting neighbors for node 86
+2025-04-10 22:11:08.772 CST [1197] INFO:  Inter-inserting neighbors for node 87
+2025-04-10 22:11:08.772 CST [1197] INFO:  Inter-inserting neighbors for node 88
+2025-04-10 22:11:08.773 CST [1197] INFO:  Inter-inserting neighbors for node 89
+2025-04-10 22:11:08.773 CST [1197] INFO:  Inter-inserting neighbors for node 90
+2025-04-10 22:11:08.773 CST [1197] INFO:  Inter-inserting neighbors for node 91
+2025-04-10 22:11:08.773 CST [1197] INFO:  Inter-inserting neighbors for node 92
+2025-04-10 22:11:08.774 CST [1197] INFO:  Inter-inserting neighbors for node 93
+2025-04-10 22:11:08.774 CST [1197] INFO:  Inter-inserting neighbors for node 94
+2025-04-10 22:11:08.774 CST [1197] INFO:  Inter-inserting neighbors for node 95
+2025-04-10 22:11:08.774 CST [1197] INFO:  Inter-inserting neighbors for node 96
+2025-04-10 22:11:08.775 CST [1197] INFO:  Inter-inserting neighbors for node 97
+2025-04-10 22:11:08.775 CST [1197] INFO:  Inter-inserting neighbors for node 98
+2025-04-10 22:11:08.775 CST [1197] INFO:  Inter-inserting neighbors for node 99
+2025-04-10 22:11:08.776 CST [1197] INFO:  Final pruning started.
+2025-04-10 22:11:08.779 CST [1197] INFO:  Linking completed.
+2025-04-10 22:11:08.779 CST [1197] INFO:  create disk layout
+2025-04-10 22:11:08.780 CST [1197] INFO:  Number of records: 100
+2025-04-10 22:11:08.785 CST [1197] INFO:  vamanabuild() end
+2025-04-10 22:11:10.552 CST [1197] INFO:  vamana beginscan
+2025-04-10 22:11:14.055 CST [1197] INFO:  GetScanValue
+2025-04-10 22:11:17.071 CST [1197] INFO:  GetScanValue is not null
+2025-04-10 22:12:10.845 CST [1197] INFO:  target vector:
+2025-04-10 22:12:12.450 CST [2017] ERROR:  pfree called with invalid pointer 0x7ffed6d36c30 (header 0x00007ffed6d36c50)
+2025-04-10 22:12:12.450 CST [2017] CONTEXT:  automatic vacuum of table "postgres.public.vectors"
+2025-04-10 22:12:24.440 CST [917] LOG:  server process (PID 1197) was terminated by signal 11: Segmentation fault
+2025-04-10 22:12:24.440 CST [917] DETAIL:  Failed process was running: select id from vectors ORDER BY embedding <-> '[2,8,6,8,2,34,20,0,2,49,76,20,6,27,21,10,39,101,83,12,11,9,13,8,8,9,8,18,94,23,0,0,74,40,16,9,13,3,1,19,106,119,119,15,4,1,3,22,0,57,119,56,81,9,2,0,6,54,26,45,119,15,0,0,98,17,3,16,56,16,6,34,119,10,1,2,2,8,44,119,0,0,4,33,71,26,81,28,7,33,39,62,93,13,4,8,30,19,0,0,9,46,10,18,54,22,8,10,5,16,59,86,1,0,1,16,6,25,119,94,0,0,1,9,31,21,41,40]' LIMIT 10;
+2025-04-10 22:12:24.440 CST [917] LOG:  terminating any other active server processes
+2025-04-10 22:12:24.442 CST [2152] FATAL:  the database system is in recovery mode
+2025-04-10 22:12:24.442 CST [917] LOG:  all server processes terminated; reinitializing
+2025-04-10 22:12:24.471 CST [2161] LOG:  database system was interrupted; last known up at 2025-04-10 22:10:14 CST
+2025-04-10 22:12:25.943 CST [2161] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-04-10 22:12:25.948 CST [2161] LOG:  redo starts at 1/61F3BD78
+2025-04-10 22:12:26.053 CST [2161] LOG:  invalid record length at 1/6324A8D0: expected at least 24, got 0
+2025-04-10 22:12:26.054 CST [2161] LOG:  redo done at 1/6324A898 system usage: CPU: user: 0.10 s, system: 0.00 s, elapsed: 0.10 s
+2025-04-10 22:12:26.064 CST [2162] LOG:  checkpoint starting: end-of-recovery immediate wait
+2025-04-10 22:12:26.181 CST [2162] LOG:  checkpoint complete: wrote 2105 buffers (12.8%); 0 WAL file(s) added, 0 removed, 2 recycled; write=0.031 s, sync=0.058 s, total=0.122 s; sync files=93, longest=0.007 s, average=0.001 s; distance=19514 kB, estimate=19514 kB; lsn=1/6324A8D0, redo lsn=1/6324A8D0
+2025-04-10 22:12:26.190 CST [917] LOG:  database system is ready to accept connections

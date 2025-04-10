@@ -204,26 +204,26 @@ bool vamanagettuple(IndexScanDesc scan, ScanDirection dir)
     // MemoryContext oldCtx = MemoryContextSwitchTo(so->tmpCtx);
 
     NewVector *heaptids = NULL;
-    Datum value;
+    //Datum value;
     // 初始化返回结果
     if (so->first)
     {
         // 执行搜索函数
 
-        value = GetScanValue(scan);
-        if (value == PointerGetDatum(NULL))
-        {
-            elog(INFO, "GetScanValue is null");
-        }
-        else
-        {
-            elog(INFO, "GetScanValue is not null");
-            Vector *query_vec = (Vector *)DatumGetPointer(value);
-            elog(INFO, "target vector:");
-            char *msg;
-            PrintVector(msg, query_vec);
-            elog(INFO, "query vector: %s", msg);
-        }
+        // value = GetScanValue(scan);
+        // if (value == PointerGetDatum(NULL))
+        // {
+        //     elog(INFO, "GetScanValue is null");
+        // }
+        // else
+        // {
+        //     elog(INFO, "GetScanValue is not null");
+        //     Vector *query_vec = (Vector *)DatumGetVector(value);
+        //     elog(INFO, "target vector:");
+        //     char *msg;
+        //     PrintVector(msg, query_vec);
+        //     elog(INFO, "query vector: %s", msg);
+        // }
 
         Vector *target = InitVector(128);
         heaptids = (NewVector *)palloc(sizeof(NewVector));
