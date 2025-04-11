@@ -1,5 +1,6 @@
 /dist/
 /log/
+/data
 /results/
 /tmp_check/
 /sql/vector--?.?.?.sql
@@ -12,3 +13,4 @@ regression.*
 *.obj
 *.lib
 *.exp
+logfile
