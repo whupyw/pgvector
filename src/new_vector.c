@@ -111,21 +111,20 @@ bool new_vector_truncate(NewVector *vec, size_t new_size)
 
     // 调整向量的大小
     vec->size = new_size;
-
-    // 可选：如果新大小远小于当前容量，重新分配内存
-    void *new_data = realloc(vec->data, new_size * vec->elem_size);
-    if (new_data != NULL)
-    {
-        vec->data = new_data;
-        return true;
-    }
-    else
-    {
-        // 处理 realloc 失败的情况（可选）
-        // 可以记录错误或者保持原有的 data 不变
-        elog(INFO, "realloc failed");
-        return false;
-    }
+    elog(INFO, "new_size: %ld, vec->size: %ld", new_size, vec->size);
+    // void *new_data = realloc(vec->data, new_size * vec->elem_size);
+    // if (new_data != NULL)
+    // {
+    //     vec->data = new_data;
+    //     return true;
+    // }
+    // else
+    // {
+    //     // 处理 realloc 失败的情况（可选）
+    //     // 可以记录错误或者保持原有的 data 不变
+    //     elog(INFO, "realloc failed");
+    //     return false;
+    // }
 }
 
 void new_vector_reserve(NewVector *vec, size_t new_capacity)

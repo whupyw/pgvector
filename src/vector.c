@@ -1594,7 +1594,7 @@ Datum test_func(PG_FUNCTION_ARGS)
 	// 	PrintVector(buf, cur_cache->vector);
 	// }
 
-	//测试新写的搜索函数
+	// 测试新写的搜索函数
 	Vector *target = InitVector(128);
 	// get_vector_in_database("vectors_index_table", 1, target);
 
@@ -1607,6 +1607,18 @@ Datum test_func(PG_FUNCTION_ARGS)
 	elog(INFO, "target:%s", printVec);
 	search_k_nearest_neighbors("vectors_index_table", 30, 10, target, 128);
 
+	PG_RETURN_NULL();
+}
 
+PG_FUNCTION_INFO_V1(test_latency);
+Datum test_latency(PG_FUNCTION_ARGS)
+{
+	
+	PG_RETURN_NULL();
+}
+
+PG_FUNCTION_INFO_V1(test_recall);
+Datum test_recall(PG_FUNCTION_ARGS)
+{
 	PG_RETURN_NULL();
 }

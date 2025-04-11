@@ -168,7 +168,7 @@ bool generate_random_neighbors_for_vector_empty(NewVector *vec, uint32_t num_poi
     for (size_t i = 0; i < num_points; i++)
     {
         NewVector *row = (NewVector *)palloc(sizeof(NewVector)); // 创建每一行
-        new_vector_init(row, sizeof(uint32_t));                  // 每行是一个NewVector，元素类型是Element
+        new_vector_init_with_capacity(row, sizeof(uint32_t), R); // 每行是一个NewVector，元素类型是Element
         // 将行添加到矩阵中
         new_vector_push_back(vec, row);
         new_vector_free(row);
@@ -778,6 +778,7 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
                 }
             }
             MyVector *new_out_neighbors = (MyVector *)palloc(sizeof(MyVector));
+            vector_init(new_out_neighbors);
             // prune_neighbors(cur_node, scratch, new_out_neighbors, max_candidate_size, alpha, R);
             float alpha = 1.20000005;
             new_prune_neighbors(des_id, dummy_pool, new_out_neighbors, max_candidate_size, alpha, R, scratch);
@@ -866,6 +867,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
         }
 
         free_scratch(scratch);
+        elog(INFO, "Freeing scratch.");
         pfree(scratch);
     }
 
