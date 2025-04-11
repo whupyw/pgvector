@@ -117,6 +117,8 @@ bool generate_random_neighbors_for_vector(NewVector *vec, uint32_t num_points, u
         new_vector_init(row, sizeof(uint32_t));                  // 每行是一个NewVector，元素类型是Element
         // 将行添加到矩阵中
         new_vector_push_back(vec, row);
+        new_vector_free(row);
+        pfree(row);
     }
 
 #pragma omp parallel for
@@ -169,6 +171,8 @@ bool generate_random_neighbors_for_vector_empty(NewVector *vec, uint32_t num_poi
         new_vector_init(row, sizeof(uint32_t));                  // 每行是一个NewVector，元素类型是Element
         // 将行添加到矩阵中
         new_vector_push_back(vec, row);
+        new_vector_free(row);
+        pfree(row);
     }
     return true;
 }
@@ -314,6 +318,8 @@ float get_distance_by_id(uint32_t vec_a, uint32_t vec_b)
     float *vector_b = (float *)palloc(sizeof(float) * 128);
     get_vec_from_compressed_data(static_compressed_data, static_pivot_data, vec_b, vector_b, 8, 128);
     float dist = get_distance(vector_a, vector_b, 128);
+    pfree(vector_a);
+    pfree(vector_b);
     return dist;
 }
 
@@ -335,6 +341,7 @@ float get_distance_to_target_by_id(uint32_t vec_id, Vector *vec_b, uint32_t dim)
     float *vector_b = vec_b->x;
     float dist = get_distance(vector_a, vector_b, dim);
     elog(INFO, "get_distance ends");
+    pfree(vector_a);
     return dist;
 }
 
@@ -785,6 +792,9 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
             pfree(dummy_pool);
             dummy_pool = NULL;
             free(dummy_visited);
+            vector_free(new_out_neighbors);
+            pfree(new_out_neighbors);
+            new_out_neighbors = NULL;
         }
         if (copy_neighbors)
         {
@@ -847,7 +857,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
         set_neighbours(i, pruned_list);
 
         inter_insert(i, pruned_list, R, scratch);
-
+        vector_free(pruned_list);
         pfree(pruned_list);
         if (query)
         {
@@ -872,7 +882,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
         if (cur_neighbors->size > R)
         {
             // 已访问列表
-            uint32_t *dummy_visited = (uint32_t *)calloc(num_points/32+1, sizeof(uint32_t));
+            uint32_t *dummy_visited = (uint32_t *)calloc(num_points / 32 + 1, sizeof(uint32_t));
             NewVector *dummy_pool = (NewVector *)palloc(sizeof(NewVector));
             new_vector_init_with_capacity(dummy_pool, sizeof(Neighbor), 2 * R);
             MyVector *new_out_neighbors = (MyVector *)palloc(sizeof(MyVector));
@@ -897,6 +907,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
                 pfree(dummy_pool);
             if (dummy_visited)
                 free(dummy_visited);
+            vector_free(new_out_neighbors);
             pfree(new_out_neighbors);
         }
         free_scratch(scratch);
