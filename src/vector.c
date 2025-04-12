@@ -1594,7 +1594,7 @@ Datum test_func(PG_FUNCTION_ARGS)
 	// 	PrintVector(buf, cur_cache->vector);
 	// }
 
-	//测试新写的搜索函数
+	// 测试新写的搜索函数
 	Vector *target = InitVector(128);
 	// get_vector_in_database("vectors_index_table", 1, target);
 
@@ -1607,6 +1607,96 @@ Datum test_func(PG_FUNCTION_ARGS)
 	elog(INFO, "target:%s", printVec);
 	search_k_nearest_neighbors("vectors_index_table", 30, 10, target, 128);
 
+	PG_RETURN_NULL();
+}
 
+PG_FUNCTION_INFO_V1(test_recall);
+Datum test_recall(PG_FUNCTION_ARGS)
+{
+	// 数据集已经加载
+
+	// 加载query数据集
+	float *buffer;
+	const char *filepath = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_query.fvecs";
+	FILE *file;
+	uint32_t dim = 128;
+
+	if ((file = fopen(filepath, "rb")) == NULL)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("Cannot open file: %s", filepath)));
+	uint32_t ndims_i32;
+	size_t expected_bytes = 0, bytes_read = 0;
+	// 读取dim
+	// 读取数据
+	buffer = (float *)palloc(dim * sizeof(float));
+	int32_t count = 0;
+	while (true)
+	{
+		size_t n_header = fread(&dim, sizeof(uint32_t), 1, file);
+		if (n_header == 0)
+		{
+			if (feof(file))
+				break; // 正常结束
+			else
+			{
+				// 处理读取错误
+				elog(ERROR, "error reading");
+			}
+		}
+		bytes_read += 1 * sizeof(uint32_t);
+		elog(INFO, "dim:%d", dim);
+		size_t n = fread(buffer, sizeof(float), dim, file);
+		// 将数组转化为vector
+		Vector *vec = InitVector(dim);
+		for (int i = 0; i < dim; i++)
+		{
+			vec->x[i] = buffer[i];
+		}
+		char *msg;
+		count++;
+		elog(INFO, "vecto:%d", count);
+		my_print_vector(vec);
+		elog(INFO, "print");
+		bytes_read += n * sizeof(float);
+	}
+
+	// 加载真值集
+	File *truth_file;
+	const char *truthfilepath = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_groundtruth.ivecs";
+	if ((truth_file = fopen(truthfilepath, "rb")) == NULL)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("Cannot open file: %s", truthfilepath)));
+	int32_t *ids = (int32_t *)palloc(count * 100 * sizeof(int32_t));
+	int32_t *new_buffer = (int32_t *)palloc(100 * sizeof(int32_t));
+	// int32_t *tmp = (int32_t *)palloc(10 * sizeof(int32_t));
+	int32_t num = 0;
+	int32_t count_query = 0;
+	while (true)
+	{
+		size_t n_header = fread(&num, sizeof(int32_t), 1, truth_file);
+		if (n_header == 0)
+		{
+			if (feof(truth_file))
+			{
+				break;
+			}
+			else
+			{
+				elog(ERROR, "error reading");
+			}
+		}
+		size_t n = fread(new_buffer, sizeof(int32_t), 100, truth_file);
+		count_query++;
+		elog(INFO, "count_query:%d", count_query);
+		elog(INFO, "the point:%d", new_buffer[0]);
+	}
+	pfree(ids);
+	pfree(buffer);
+	pfree(new_buffer);
+	fclose(file);
+	fclose(truth_file);
+	// 对比结果 计算召回率
 	PG_RETURN_NULL();
 }

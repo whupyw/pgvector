@@ -963,19 +963,19 @@ void build(const char *compressed_vec_file, const char *pivots_file, uint32_t R,
     // 生成随机邻居
     uint32_t *neighbors = NULL;
     NewVector *neighbors_vectors = (NewVector *)palloc(sizeof(NewVector));
-    // generate_random_neighbors_for_vector(neighbors_vectors, num_points, R);
-    generate_random_neighbors_for_vector_empty(neighbors_vectors, num_points, R);
+    generate_random_neighbors_for_vector(neighbors_vectors, num_points, R);
+    //generate_random_neighbors_for_vector_empty(neighbors_vectors, num_points, R);
     static_neighbors_vectors = neighbors_vectors;
     // check neighbors
-    elog(INFO, "check neighbors size");
-    for (size_t i = 0; i < num_points; i++)
-    {
-        NewVector *cur_neighbors = new_vector_get(neighbors_vectors, i);
-        for (size_t j = 0; j < cur_neighbors->size; j++)
-        {
-            elog(INFO, "neighbors size,%d", cur_neighbors->size);
-        }
-    }
+    // elog(INFO, "check neighbors size");
+    // for (size_t i = 0; i < num_points; i++)
+    // {
+    //     NewVector *cur_neighbors = new_vector_get(neighbors_vectors, i);
+    //     for (size_t j = 0; j < cur_neighbors->size; j++)
+    //     {
+    //         //elog(INFO, "neighbors size,%d", cur_neighbors->size);
+    //     }
+    // }
     vamana_link(full_pivot_data, compressed_data, neighbors, dim, num_points, R, L, num_threads);
     // pfree(neighbors);
 }

@@ -353,8 +353,8 @@ void get_vectors_and_neighbors(char *index_table_name, NewVector *re_vectors, Ne
     SPI_finish();
 }
 
-NewVector* search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
-                                int k, Vector *target, uint32_t vector_num)
+NewVector *search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
+                                      int k, Vector *target, uint32_t vector_num)
 {
     // 要考虑的点，邻居肯定不是全加载
     // （可选） 预先加载三跳以内的向量和邻居
@@ -553,7 +553,7 @@ NewVector* search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
     for (uint32_t i = 0; i < k && i < full_retset->size; i++)
     {
         Neighbor *nbr = (Neighbor *)new_vector_get(full_retset, i);
-        //elog(INFO, "id: %d, distance: %f", nbr->id, nbr->distance);
+        // elog(INFO, "id: %d, distance: %f", nbr->id, nbr->distance);
         uint32_t nbr_id = nbr->id;
         new_vector_push_back(res_vector_ids, &nbr_id);
     }
@@ -610,4 +610,22 @@ VamanaGetTypeInfo(Relation index)
     }
     else
         return (const VamanaTypeInfo *)DatumGetPointer(FunctionCall0Coll(procinfo, InvalidOid));
+}
+
+void my_print_vector(Vector *vec)
+{
+    float *data = vec->x;
+    int n = vec->dim;
+    char result[1000] = ""; // 假设结果字符串不会超过 1000 字符
+    char buffer[50];        // 临时字符数组用于存储每个浮点数的字符串表
+    for (int i = 0; i < vec->dim; i++)
+    {
+        sprintf(buffer, "%.2f", data[i]); // 将浮点数格式化为字符串
+        strcat(result, buffer);           // 拼接到结果字符串
+        if (i < n - 1)
+        {
+            strcat(result, ", "); // 在数字之间添加逗号
+        }
+    }
+    elog(INFO, "vector: %s", result);
 }

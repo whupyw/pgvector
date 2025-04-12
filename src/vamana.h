@@ -254,4 +254,5 @@ NewVector* search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
                                      int k, Vector *target, uint32_t vector_num);
 FmgrInfo *VamanaOptionalProcInfo(Relation index, uint16 procnum);
 const VamanaTypeInfo *VamanaGetTypeInfo(Relation index);
+void my_print_vector(Vector *vec);
 #endif /* VAMANA_H */

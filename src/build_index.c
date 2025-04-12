@@ -9,6 +9,7 @@
 #include "utils/memutils.h"
 #include "diskann.h" // 假设有对应的 C 语言头文件
 #include "executor/spi.h"
+#include "fmgr.h"
 #include "utils/array.h"
 #include "catalog/pg_type.h"
 #include "vector.h"
@@ -532,6 +533,7 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
 
     char query[256];
     snprintf(query, sizeof(query), "SELECT %s FROM %s", column_name, table_name);
+    
     int ret = SPI_exec(query, 0);
     if (ret != SPI_OK_SELECT)
     {
@@ -539,6 +541,13 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
         SPI_finish();
         // return NULL;
     }
+
+    // if (SPI_execute(query, true, 0) != SPI_OK_SELECT)
+    // {
+    //     SPI_finish();
+    //     elog(ERROR, "Failed to execute query: %s", query);
+    // }
+
     elog(LOG, "ready for loop");
     if (getrusage(RUSAGE_SELF, &usage) == -1)
     {
@@ -547,6 +556,9 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
     }
     elog(INFO, "get first_val,Memory usage: %ld kB\n", usage.ru_maxrss);
     // 读取第一个 vector 以确定维度
+    // uint64_t num_rows_64 = SPI_processed;
+    // SPITupleTable *tuptable = SPI_tuptable;
+    // HeapTuple tuple = tuptable->vals[0];
     bool isnull;
     Datum first_val = SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1, &isnull);
     if (isnull)
@@ -583,7 +595,6 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
         // elog(LOG,"loop:i = %ld", i);
         //  复制数据到 inputdata
         memcpy(data + i * (*ndims), vec_data, (*ndims) * sizeof(float));
-        //free(vec);
     }
     SPI_freetuptable(SPI_tuptable);
     if (getrusage(RUSAGE_SELF, &usage) == -1)
