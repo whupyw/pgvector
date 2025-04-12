@@ -31,6 +31,8 @@
 #include <utils/array.h>
 #include "vamana_index.h"
 #include "bit_array.h"
+#include <stdlib.h>
+#include <time.h>
 /* Vamana图搜索 */
 static List *
 SearchVamanaGraph(Relation index, Datum query, int k)
@@ -211,14 +213,16 @@ bool vamanagettuple(IndexScanDesc scan, ScanDirection dir)
     if (so->first)
     {
         // 执行搜索函数
+        srand(time(NULL));
         Vector *target = InitVector(128);
         heaptids = (NewVector *)palloc(sizeof(NewVector));
         const char *table_name = "vectors_index_table";
         for (uint32_t i = 0; i < 128; i++)
         {
-            target->x[i] = i % 64;
+            int random_number = rand() % 100 + 1;
+            target->x[i] = (float)random_number;
         }
-        uint32_t init_id = 30;
+        uint32_t init_id = rand() % 10000 + 1;
         uint32_t k = 10;
         NewVector *target_nbrs = search_k_nearest_neighbors(table_name, init_id, k, target, target->dim);
         const char *origin_table_name = "vectors";
