@@ -702,7 +702,7 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
     // 函数会创建副本并进行剪枝，确保每个节点的邻居池不会过大，并且通过距离和其他准则优化邻居池。
     // 在操作过程中，为了确保线程安全，函数使用了锁来保护对邻居池的修改。
     // 最终，剪枝后的新邻居池会被写回到 `_graph_store` 中。
-    elog(INFO, "Inter-inserting neighbors for node %u", node);
+    elog(LOG, "Inter-inserting neighbors for node %u", node);
     assert(pruned_list->size != 0);
     uint32_t max_candidate_size = 100;
 
@@ -833,10 +833,6 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     // 遍历列表
     for (i = 0; i < num_points; i++)
     {
-        if (i % 1000 == 0)
-        {
-            elog(INFO, "node:%d", i);
-        }
         Scratch *scratch = (Scratch *)palloc(sizeof(Scratch));
         init_scratch(scratch, num_points, L, entry_point, i);
         MyVector *pruned_list = (MyVector *)palloc(sizeof(MyVector));
@@ -990,7 +986,7 @@ int build_merged_vamana_index(const char *pivots_data, const char *compressed_ve
 
     if (full_index_ram < ram_budget * 1024 * 1024 * 1024)
     {
-        elog(INFO, "Full index fits in RAM budget: %.2f GiB", full_index_ram / (1024 * 1024 * 1024));
+        //elog(INFO, "Full index fits in RAM budget: %.2f GiB", full_index_ram / (1024 * 1024 * 1024));
 
         // 链接
         build(compressed_vec, pivots_data, R, L, num_threads, 8);
@@ -1002,7 +998,7 @@ int build_merged_vamana_index(const char *pivots_data, const char *compressed_ve
         return 0;
     }
 
-    elog(INFO, "Index exceeds RAM budget, using partitioning");
+    //elog(INFO, "Index exceeds RAM budget, using partitioning");
 
     // 省略分片和合并索引的实现
 

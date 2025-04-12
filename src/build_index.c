@@ -18,6 +18,7 @@
 #include <errno.h>
 #include "vamana_index.h"
 #include "store_index.h"
+#include <sys/resource.h>
 #define MAX_PARAM_COUNT 9
 
 #define NUM_PQ_CENTROIDS 256
@@ -515,6 +516,13 @@ void get_vector_data_param(const char *table_name, const char *column_name, size
 
 void load_vector_data_to_mem(const char *table_name, const char *column_name, size_t *npts, size_t *ndims, float *data)
 {
+    struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "AAAA,Memory usage: %ld kB\n", usage.ru_maxrss);
     elog(LOG, "start load_vector_data");
     if (SPI_connect() != SPI_OK_CONNECT)
     {
@@ -531,7 +539,13 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
         SPI_finish();
         // return NULL;
     }
-
+    elog(LOG, "ready for loop");
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "get first_val,Memory usage: %ld kB\n", usage.ru_maxrss);
     // 读取第一个 vector 以确定维度
     bool isnull;
     Datum first_val = SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1, &isnull);
@@ -548,6 +562,12 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
 
     // 解析每一行数据
     elog(LOG, "ready for loop");
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "loop start,Memory usage: %ld kB\n", usage.ru_maxrss);
     for (size_t i = 0; i < *npts; i++)
     {
         HeapTuple tuple = SPI_tuptable->vals[i];
@@ -563,8 +583,22 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
         // elog(LOG,"loop:i = %ld", i);
         //  复制数据到 inputdata
         memcpy(data + i * (*ndims), vec_data, (*ndims) * sizeof(float));
+        //free(vec);
     }
+    SPI_freetuptable(SPI_tuptable);
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "loop end,Memory usage: %ld kB\n", usage.ru_maxrss);
     SPI_finish();
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "BBBB,Memory usage: %ld kB\n", usage.ru_maxrss);
 }
 
 /* 采样函数 */
@@ -574,14 +608,15 @@ void gen_random_slice(const float *inputdata, size_t npts, size_t ndims, double 
     if (p_val > 1.0)
         p_val = 1.0;
 
-    MemoryContext oldContext;
-    MemoryContext ctx;
+    // MemoryContext oldContext;
+    // MemoryContext ctx;
 
-    // 创建一个专属的内存上下文
-    ctx = AllocSetContextCreate(CurrentMemoryContext, "SampleDataContext", ALLOCSET_DEFAULT_SIZES);
-    oldContext = MemoryContextSwitchTo(ctx);
+    // // 创建一个专属的内存上下文
+    // ctx = AllocSetContextCreate(CurrentMemoryContext, "SampleDataContext", ALLOCSET_DEFAULT_SIZES);
+    // oldContext = MemoryContextSwitchTo(ctx);
 
-    float *temp_data = (float *)MemoryContextAlloc(ctx, npts * ndims * sizeof(float));
+    // float *temp_data = (float *)MemoryContextAlloc(ctx, npts * ndims * sizeof(float));
+    float *temp_data = (float *)palloc(npts * ndims * sizeof(float));
     if (!temp_data)
     {
         elog(ERROR, "Memory allocation failed for sampled data");
@@ -603,7 +638,7 @@ void gen_random_slice(const float *inputdata, size_t npts, size_t ndims, double 
     }
 
     // 精确调整内存分配
-    *sampled_data = (float *)MemoryContextAlloc(ctx, count * ndims * sizeof(float));
+    *sampled_data = (float *)palloc(count * ndims * sizeof(float));
     if (!*sampled_data)
     {
         elog(ERROR, "Memory allocation failed for final sampled data");
@@ -631,10 +666,10 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
         return -1;
     }
 
-    MemoryContext context = AllocSetContextCreate(CurrentMemoryContext,
-                                                  "PQ Pivot Generation Context",
-                                                  ALLOCSET_DEFAULT_SIZES);
-    MemoryContext oldcontext = MemoryContextSwitchTo(context);
+    // MemoryContext context = AllocSetContextCreate(CurrentMemoryContext,
+    //                                               "PQ Pivot Generation Context",
+    //                                               ALLOCSET_DEFAULT_SIZES);
+    // MemoryContext oldcontext = MemoryContextSwitchTo(context);
 
     float *train_data_copy = (float *)palloc(num_train * dim * sizeof(float));
     memcpy(train_data_copy, train_data, num_train * dim * sizeof(float));
@@ -646,8 +681,8 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
     if (file_exists(pq_pivots_path))
     {
         elog(LOG, "PQ pivot file exists. Not generating again");
-        MemoryContextSwitchTo(oldcontext);
-        MemoryContextDelete(context);
+        // MemoryContextSwitchTo(oldcontext);
+        // MemoryContextDelete(context);
         return -1;
     }
 
@@ -731,8 +766,8 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
     pfree(centroid);
     pfree(chunk_offsets);
 
-    MemoryContextSwitchTo(oldcontext);
-    MemoryContextDelete(context);
+    // MemoryContextSwitchTo(oldcontext);
+    // MemoryContextDelete(context);
 
     elog(LOG, "Saved PQ pivot data to %s", pq_pivots_path);
     return 0;
@@ -781,12 +816,12 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
     get_vector_data_param(table_name, column_name, &num_points, &tmp_ndims);
     dim = (size_t)basedim32;
 
-    ctx = AllocSetContextCreate(CurrentMemoryContext,
-                                "PQDataMemoryContext",
-                                ALLOCSET_DEFAULT_MINSIZE,
-                                ALLOCSET_DEFAULT_INITSIZE,
-                                ALLOCSET_DEFAULT_MAXSIZE);
-    old_ctx = MemoryContextSwitchTo(ctx);
+    // ctx = AllocSetContextCreate(CurrentMemoryContext,
+    //                             "PQDataMemoryContext",
+    //                             ALLOCSET_DEFAULT_MINSIZE,
+    //                             ALLOCSET_DEFAULT_INITSIZE,
+    //                             ALLOCSET_DEFAULT_MAXSIZE);
+    // old_ctx = MemoryContextSwitchTo(ctx);
 
     full_pivot_data = NULL;
     centroid = NULL;
@@ -861,9 +896,15 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
 
     fclose(compressed_file_writer);
     fclose(base_reader);
+    pfree(block_compressed_base);
+    pfree(block_data_tmp);
+    if (full_pivot_data != NULL)
+    {
+        free(full_pivot_data);
+    }
 
-    MemoryContextSwitchTo(old_ctx);
-    MemoryContextDelete(ctx);
+    // MemoryContextSwitchTo(old_ctx);
+    // MemoryContextDelete(ctx);
 
     return 0;
 }
@@ -879,30 +920,63 @@ void generate_quantized_data(
     bool use_opq,
     const char *codebook_prefix, const char *table_name, const char *column_name)
 {
+    struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "896,Memory usage: %ld kB\n", usage.ru_maxrss);
     size_t train_size;
     size_t train_dim = 128;
     size_t npts;
     size_t ndims; // 128维向量
     get_vector_data_param(table_name, column_name, &npts, &ndims);
+
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "front,Memory usage: %ld kB\n", usage.ru_maxrss);
+
     float *inputdata = (float *)palloc(npts * ndims * sizeof(float));
+
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "back,Memory usage: %ld kB\n", usage.ru_maxrss);
+
     load_vector_data_to_mem(table_name, column_name, &npts, &ndims, inputdata);
     float *sampled_data = NULL;
     size_t slice_size = 0;
 
     elog(LOG, "start generate_quantized_data");
-
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "913,Memory usage: %ld kB\n", usage.ru_maxrss);
     if (!file_exists(pq_pivots_path))
     {
         // 生成随机数据切片
+
         gen_random_slice(inputdata, npts, ndims, p_val, &sampled_data, &slice_size);
         elog(LOG, "Training data with %zu samples loaded.", slice_size); // 使用 NOTICE 级别
-        pfree(inputdata);
         bool make_zero_mean = true;
         if (compare_metric == DISKANN_INNER_PRODUCT)
             make_zero_mean = false;
         if (use_opq) // OPQ 不需要中心化
             make_zero_mean = false;
-
+        if (getrusage(RUSAGE_SELF, &usage) == -1)
+        {
+            perror("getrusage");
+            return 1;
+        }
+        elog(INFO, "930,Memory usage: %ld kB\n", usage.ru_maxrss);
         if (!use_opq)
         {
             elog(LOG, "start generate pivots");
@@ -922,6 +996,12 @@ void generate_quantized_data(
 
     // 生成PQ压缩数据
     elog(LOG, "Generating PQ compressed data");
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "955,Memory usage: %ld kB\n", usage.ru_maxrss);
     if (!file_exists(pq_compressed_vectors_path))
     {
         generate_pq_data_from_pivots(data_file_to_use, NUM_PQ_CENTROIDS,
@@ -932,6 +1012,26 @@ void generate_quantized_data(
     {
         elog(LOG, "Skip Generating PQ compressed data");
     }
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "971,Memory usage: %ld kB\n", usage.ru_maxrss);
+    if (sampled_data)
+    {
+        pfree(sampled_data);
+    }
+    if (inputdata != NULL)
+    {
+        pfree(inputdata);
+    }
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "end,Memory usage: %ld kB\n", usage.ru_maxrss);
 }
 
 // 辅助函数实现
@@ -1063,17 +1163,43 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
 
     /* 构建索引 */
     // ereport(LOG, (errmsg("开始构建索引: R=%u, L=%u, 线程数=%u", R, L, num_threads)));
-    elog(LOG, "开始构建索引: R=%u, L=%u, 线程数=%u", R, L, num_threads);
 
+    struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "Memory usage: %ld kB\n", usage.ru_maxrss);
+    elog(INFO, "开始量化数据: R=%u, L=%u", R, L);
     // 生成量化数据
     generate_quantized_data(dataFilePath, pq_pivots_path, pq_compressed_vectors_path, compareMetric, p_val, num_pq_chunks, use_opq, codebook_prefix, table_name, column_name);
 
     // 构建索引
-    elog(LOG, "开始构建索引");
+
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "Memory usage: %ld kB\n", usage.ru_maxrss);
+    elog(INFO, "开始构建索引");
     build_merged_vamana_index(pq_pivots_path, pq_compressed_vectors_path, indexing_ram_budget, R, L, num_threads, 25000, 128);
     /* 清理临时文件（如果有的话） */
-
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "Memory usage: %ld kB\n", usage.ru_maxrss);
+    elog(INFO, "开始存入磁盘");
     create_disk_laylout(table_name);
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "Memory usage: %ld kB\n", usage.ru_maxrss);
     pfree(pq_pivots_path);
     pfree(pq_compressed_vectors_path);
     free(buildParams);

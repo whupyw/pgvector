@@ -180,7 +180,7 @@ hnswgettuple(IndexScanDesc scan, ScanDirection dir)
 {
 	HnswScanOpaque so = (HnswScanOpaque) scan->opaque;
 	MemoryContext oldCtx = MemoryContextSwitchTo(so->tmpCtx);
-
+	
 	/*
 	 * Index can be used to scan backward, but Postgres doesn't support
 	 * backward scan on operators

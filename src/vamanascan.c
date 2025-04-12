@@ -188,7 +188,10 @@ GetScanValue(IndexScanDesc scan)
         value = PointerGetDatum(NULL);
     else
     {
-        elog(INFO, "GetScanValue");
+        if (scan->orderByData == NULL)
+        {
+            elog(INFO, "GetScanValue: scan->orderByData is NULL");
+        }
         value = scan->orderByData->sk_argument;
         Assert(!VARATT_IS_COMPRESSED(DatumGetPointer(value)));
         Assert(!VARATT_IS_EXTENDED(DatumGetPointer(value)));
@@ -204,27 +207,10 @@ bool vamanagettuple(IndexScanDesc scan, ScanDirection dir)
     // MemoryContext oldCtx = MemoryContextSwitchTo(so->tmpCtx);
 
     NewVector *heaptids = NULL;
-    //Datum value;
     // 初始化返回结果
     if (so->first)
     {
         // 执行搜索函数
-
-        // value = GetScanValue(scan);
-        // if (value == PointerGetDatum(NULL))
-        // {
-        //     elog(INFO, "GetScanValue is null");
-        // }
-        // else
-        // {
-        //     elog(INFO, "GetScanValue is not null");
-        //     Vector *query_vec = (Vector *)DatumGetVector(value);
-        //     elog(INFO, "target vector:");
-        //     char *msg;
-        //     PrintVector(msg, query_vec);
-        //     elog(INFO, "query vector: %s", msg);
-        // }
-
         Vector *target = InitVector(128);
         heaptids = (NewVector *)palloc(sizeof(NewVector));
         const char *table_name = "vectors_index_table";
@@ -291,7 +277,7 @@ vamanabeginscan(Relation index, int nkeys, int norderbys)
 
     /* Calculate max memory */
     /* Add 256 extra bytes to fill last block when close */
-    maxMemory = (double)work_mem * 1024.0 * 1024.0 + 256;
+    maxMemory = (double)work_mem * 2 * 1024.0 + 256;
     so->maxMemory = Min(maxMemory, (double)SIZE_MAX);
 
     scan->opaque = so;
@@ -303,17 +289,18 @@ vamanabeginscan(Relation index, int nkeys, int norderbys)
 void vamanarescan(IndexScanDesc scan, ScanKey keys, int nkeys,
                   ScanKey orderbys, int norderbys)
 {
-    // VamanaScanOpaque so = (VamanaScanOpaque)scan->opaque;
+    elog(INFO, "vamana rescan");
+    VamanaScanOpaque so = (VamanaScanOpaque)scan->opaque;
 
-    // // 重置扫描状态
-    // so->first = true;
+    // 重置扫描状态
+    so->first = true;
 
-    // if (keys && scan->numberOfKeys > 0)
-    //     memmove(scan->keyData, keys, scan->numberOfKeys * sizeof(ScanKeyData));
+    if (keys && scan->numberOfKeys > 0)
+        memmove(scan->keyData, keys, scan->numberOfKeys * sizeof(ScanKeyData));
 
-    // if (orderbys && scan->numberOfOrderBys > 0)
-    //     memmove(scan->orderByData, orderbys,
-    //             scan->numberOfOrderBys * sizeof(ScanKeyData));
+    if (orderbys && scan->numberOfOrderBys > 0)
+        memmove(scan->orderByData, orderbys,
+                scan->numberOfOrderBys * sizeof(ScanKeyData));
 }
 
 /* 结束扫描 */
