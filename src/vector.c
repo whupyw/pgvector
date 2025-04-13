@@ -1680,6 +1680,8 @@ Datum test_recall(PG_FUNCTION_ARGS)
 				elog(ERROR, "error reading");
 			}
 		}
+		elog(INFO,"count:%d", count);
+		// 读取数据
 		elog(INFO, "truth value:%d,%d,%d,%d,%d", ids[count * 10], ids[count * 10 + 1], ids[count * 10 + 2], ids[count * 10 + 3], ids[count * 10 + 4]);
 		elog(INFO, "truth value:%d,%d,%d,%d,%d", ids[count * 10 + 5], ids[count * 10 + 6], ids[count * 10 + 7], ids[count * 10 + 8], ids[count * 10 + 9]);
 		bytes_read += 1 * sizeof(uint32_t);

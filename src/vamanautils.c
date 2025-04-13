@@ -275,7 +275,7 @@ void get_vectors_and_neighbors(char *index_table_name, NewVector *re_vectors, Ne
                  "WHEN %d THEN %zu ", vector_id, i + 1);
     }
     snprintf(query + strlen(query), sizeof(query) - strlen(query), "END");
-    elog(INFO, "query: %s", query);
+    //elog(INFO, "query: %s", query);
     if (SPI_execute(query, true, 0) != SPI_OK_SELECT)
     {
         SPI_finish();
