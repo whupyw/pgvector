@@ -314,6 +314,8 @@ float get_distance_by_id(uint32_t vec_a, uint32_t vec_b)
     float *vector_b = (float *)palloc(sizeof(float) * 128);
     get_vec_from_compressed_data(static_compressed_data, static_pivot_data, vec_b, vector_b, 8, 128);
     float dist = get_distance(vector_a, vector_b, 128);
+    pfree(vector_a);
+    pfree(vector_b);
     return dist;
 }
 
@@ -872,7 +874,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
         if (cur_neighbors->size > R)
         {
             // 已访问列表
-            uint32_t *dummy_visited = (uint32_t *)calloc(num_points/32+1, sizeof(uint32_t));
+            uint32_t *dummy_visited = (uint32_t *)calloc(num_points / 32 + 1, sizeof(uint32_t));
             NewVector *dummy_pool = (NewVector *)palloc(sizeof(NewVector));
             new_vector_init_with_capacity(dummy_pool, sizeof(Neighbor), 2 * R);
             MyVector *new_out_neighbors = (MyVector *)palloc(sizeof(MyVector));
