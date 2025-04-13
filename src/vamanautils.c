@@ -275,7 +275,7 @@ void get_vectors_and_neighbors(char *index_table_name, NewVector *re_vectors, Ne
                  "WHEN %d THEN %zu ", vector_id, i + 1);
     }
     snprintf(query + strlen(query), sizeof(query) - strlen(query), "END");
-    //elog(INFO, "query: %s", query);
+    // elog(INFO, "query: %s", query);
     if (SPI_execute(query, true, 0) != SPI_OK_SELECT)
     {
         SPI_finish();
@@ -353,8 +353,8 @@ void get_vectors_and_neighbors(char *index_table_name, NewVector *re_vectors, Ne
     SPI_finish();
 }
 
-NewVector* search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
-                                int k, Vector *target, uint32_t vector_num)
+NewVector *search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
+                                      int k, Vector *target, uint32_t vector_num)
 {
     // 要考虑的点，邻居肯定不是全加载
     // （可选） 预先加载三跳以内的向量和邻居
@@ -522,12 +522,12 @@ NewVector* search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
             // 判断哪些在内存哪些不在
             // 先全部从磁盘中获取
             uint32_t n_id = ((Neighbor *)new_vector_get(full_retset, i))->id;
-            //elog(INFO, "isert_id: %d", n_id);
-            // int ret = kv_insert(my_kv_table, n_id, i);
-            // if (ret == 0)
-            // {
-            //     elog(ERROR, "kv_insert failed");
-            // }
+            // elog(INFO, "isert_id: %d", n_id);
+            //  int ret = kv_insert(my_kv_table, n_id, i);
+            //  if (ret == 0)
+            //  {
+            //      elog(ERROR, "kv_insert failed");
+            //  }
             new_vector_push_back(frontier_nhoods_req, &n_id);
         }
 
@@ -541,7 +541,7 @@ NewVector* search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
         for (size_t i = 0; i < full_retset->size; i++)
         {
             VectorCache *cur = new_vector_get(frontier_nhoods, i);
-            //elog(INFO, "isert_id: %d", cur->vector_id);
+            // elog(INFO, "isert_id: %d", cur->vector_id);
             float true_dist = vector_L2_distance(target->dim, target->x, cur->vector->x);
             Neighbor *nbr = (Neighbor *)new_vector_get(full_retset, i);
             nbr->distance = true_dist;
@@ -553,7 +553,7 @@ NewVector* search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
     for (uint32_t i = 0; i < k && i < full_retset->size; i++)
     {
         Neighbor *nbr = (Neighbor *)new_vector_get(full_retset, i);
-        //elog(INFO, "id: %d, distance: %f", nbr->id, nbr->distance);
+        // elog(INFO, "id: %d, distance: %f", nbr->id, nbr->distance);
         uint32_t nbr_id = nbr->id;
         new_vector_push_back(res_vector_ids, &nbr_id);
     }
@@ -610,4 +610,46 @@ VamanaGetTypeInfo(Relation index)
     }
     else
         return (const VamanaTypeInfo *)DatumGetPointer(FunctionCall0Coll(procinfo, InvalidOid));
+}
+
+void MyPrintVector(Vector *vector)
+{
+    float *arr = vector->x;
+    char temp[64];
+    size_t out_size = 2000;
+    char out[2000];
+    size_t size = vector->dim;
+
+    for (size_t i = 0; i < size; i++)
+    {
+        snprintf(temp, sizeof(temp), "%.4f", arr[i]);
+        strncat(out, temp, out_size - strlen(out) - 1);
+
+        if (i < out_size - 1)
+        {
+            strncat(out, ", ", out_size - strlen(out) - 1);
+        }
+    }
+    elog(LOG, "vector: %s", out);
+}
+
+void new_vector_to_string(NewVector *vec, char *out, size_t out_size)
+{
+    char temp[32]; // 用于存储单个元素转化为字符串的临时缓冲区
+    out[0] = '\0'; // 初始化为空字符串
+
+    for (size_t i = 0; i < vec->size; i++)
+    {
+        uint32_t *val = (uint32_t *)new_vector_get(vec, i);
+        snprintf(temp, sizeof(temp), "%u", *val); // 将 uint32_t 转为字符串
+
+        // 拼接到最终字符串
+        strncat(out, temp, out_size - strlen(out) - 1);
+
+        // 添加逗号和空格分隔符（如果不是最后一个元素）
+        if (i < vec->size - 1)
+        {
+            strncat(out, ", ", out_size - strlen(out) - 1);
+        }
+    }
 }
