@@ -101691,3 +101691,8 @@
 2025-04-13 11:08:31.635 CST [23579] INFO:  truth value:0,0,0,0,0
 2025-04-13 11:08:41.456 CST [23994] ERROR:  pfree called with invalid pointer 0x7ffcdd8588f0 (header 0x00007ffcdd858910)
 2025-04-13 11:08:41.456 CST [23994] CONTEXT:  automatic vacuum of table "postgres.public.vectors"
+2025-04-13 11:09:39.751 CST [21248] LOG:  checkpoint complete: wrote 1753 buffers (10.7%); 0 WAL file(s) added, 0 removed, 3 recycled; write=257.998 s, sync=0.093 s, total=258.142 s; sync files=129, longest=0.015 s, average=0.001 s; distance=46222 kB, estimate=46222 kB; lsn=5/3893D850, redo lsn=5/370DDBF8
+2025-04-13 11:09:41.535 CST [24396] ERROR:  pfree called with invalid pointer 0x7ffcdd858c90 (header 0x000055c77b2d8a78)
+2025-04-13 11:09:41.535 CST [24396] CONTEXT:  automatic analyze of table "postgres.public.vectors"
+2025-04-13 11:10:21.782 CST [21248] LOG:  checkpoint starting: time
+2025-04-13 11:14:51.222 CST [21248] LOG:  checkpoint complete: wrote 2702 buffers (16.5%); 0 WAL file(s) added, 0 removed, 1 recycled; write=269.270 s, sync=0.128 s, total=269.440 s; sync files=106, longest=0.007 s, average=0.002 s; distance=24984 kB, estimate=44098 kB; lsn=5/38943EA0, redo lsn=5/38943E10

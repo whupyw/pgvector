@@ -604,7 +604,6 @@ void new_prune_neighbors(uint32_t location, NewVector *pool, MyVector *pruned_li
     vector_reserve(pruned_list, R);
 
     // 进行剪枝操作
-    // uint32_t R = 10;
     occlude_list(location, pool, alpha, pruned_list, max_candidate_size, R, scratch);
     assert(pruned_list->size <= R);
     // 图饱和处理
@@ -627,7 +626,7 @@ void new_prune_neighbors(uint32_t location, NewVector *pool, MyVector *pruned_li
 }
 
 // 搜索节点 加入候选集
-void search_for_point_and_prune(Scratch *scratch, float *pivots_data, uint32_t *compressed_vectors, uint32_t *neighbours, uint32_t location, uint32_t Lindex, MyVector *pruned_list, float *query_vec)
+void search_for_point_and_prune(Scratch *scratch, float *pivots_data, uint32_t *compressed_vectors, uint32_t *neighbours, uint32_t location, uint32_t Lindex, MyVector *pruned_list, float *query_vec,uint32_t R)
 {
 
     // 执行固定点迭代 主要工作 从起始点开始，BFS，计算经过的点和距离加入pool
@@ -661,7 +660,6 @@ void search_for_point_and_prune(Scratch *scratch, float *pivots_data, uint32_t *
     float alpha = 1.20000005;
     // 最大遮蔽大小
     uint32_t _indexingMaxC = 100;
-    uint32_t R = 10;
     // prune_neighbors(location, scratch, pruned_list, 50, alpha, R);
     NewVector *pool = scratch->expanded_nodes;
     new_prune_neighbors(location, pool, pruned_list, _indexingMaxC, alpha, R, scratch);
@@ -834,7 +832,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
         float *query = (float *)palloc0(sizeof(float) * dim);
         get_vec_from_compressed_data(compressed_vectors, pivots_data, i, query, 8, dim);
 
-        search_for_point_and_prune(scratch, pivots_data, compressed_vectors, neighbours, i, L, pruned_list, query);
+        search_for_point_and_prune(scratch, pivots_data, compressed_vectors, neighbours, i, L, pruned_list, query,R);
         assert(pruned_list->size > 0);
         // #pragma omp critical
         if (pruned_list->size == 0)
