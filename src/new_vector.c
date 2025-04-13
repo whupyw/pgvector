@@ -7,7 +7,7 @@
 void new_vector_init(NewVector *vec, size_t elem_size)
 {
     size_t the_capacity = 20;
-    vec->data = palloc(elem_size * the_capacity); // 初始容量为 8
+    vec->data = malloc(elem_size * the_capacity); // 初始容量为 8
     vec->elem_size = elem_size;
     vec->size = 0;
     vec->capacity = the_capacity;
@@ -15,7 +15,7 @@ void new_vector_init(NewVector *vec, size_t elem_size)
 
 void new_vector_init_with_capacity(NewVector *vec, size_t elem_size, size_t capacity)
 {
-    vec->data = palloc(elem_size * capacity); // 初始容量为 8
+    vec->data = malloc(elem_size * capacity); // 初始容量为 8
     vec->elem_size = elem_size;
     vec->size = 0;
     vec->capacity = capacity;
@@ -27,7 +27,7 @@ void new_vector_push_back(NewVector *vec, const void *value)
     {
         vec->capacity *= 2;
         // vec->data = realloc(vec->data, vec->capacity * vec->elem_size);
-        void *new_data = palloc(vec->capacity * vec->elem_size);
+        void *new_data = realloc(vec->data, vec->capacity * vec->elem_size);
 
         // 如果 realloc 失败，保持原有内存不变
         if (new_data == NULL)
@@ -35,11 +35,6 @@ void new_vector_push_back(NewVector *vec, const void *value)
             elog(INFO, "Memory allocation failed during realloc.");
             return;
         }
-        memcpy((char *)new_data, (char *)vec->data, vec->elem_size * vec->size);
-        // 如果 realloc 成功，更新 vec->data
-        // DEBUG 这里 如果初始容量小的话，会出现段错误
-        pfree(vec->data);
-        vec->data = NULL;
         vec->data = new_data;
     }
     memcpy((char *)vec->data + vec->size * vec->elem_size, value, vec->elem_size);
@@ -113,19 +108,19 @@ bool new_vector_truncate(NewVector *vec, size_t new_size)
     vec->size = new_size;
 
     // 可选：如果新大小远小于当前容量，重新分配内存
-    void *new_data = realloc(vec->data, new_size * vec->elem_size);
-    if (new_data != NULL)
-    {
-        vec->data = new_data;
-        return true;
-    }
-    else
-    {
-        // 处理 realloc 失败的情况（可选）
-        // 可以记录错误或者保持原有的 data 不变
-        elog(INFO, "realloc failed");
-        return false;
-    }
+    // void *new_data = realloc(vec->data, new_size * vec->elem_size);
+    // if (new_data != NULL)
+    // {
+    //     vec->data = new_data;
+    //     return true;
+    // }
+    // else
+    // {
+    //     // 处理 realloc 失败的情况（可选）
+    //     // 可以记录错误或者保持原有的 data 不变
+    //     elog(INFO, "realloc failed");
+    //     return false;
+    // }
 }
 
 void new_vector_reserve(NewVector *vec, size_t new_capacity)
@@ -133,25 +128,17 @@ void new_vector_reserve(NewVector *vec, size_t new_capacity)
     if (new_capacity > vec->capacity)
     {
         // vec->data = realloc(vec->data, vec->capacity * vec->elem_size);
-        void *new_data = palloc(new_capacity * vec->elem_size);
+        void *new_data = realloc(new_capacity * vec->elem_size);
 
         // 如果 alloc 失败，保持原有内存不变
-        if (new_data == NULL)
+        if (new_data != NULL)
         {
-            elog(INFO, "Memory allocation failed during realloc.");
-            return;
+            vec->data = new_data;
+            vec->capacity = new_capacity;
         }
-        memcpy((char *)new_data, (char *)vec->data, vec->elem_size * vec->size);
-        // 如果 realloc 成功，更新 vec->data
-        pfree(vec->data);
-        vec->data = NULL;
-        vec->data = new_data;
-        vec->capacity = new_capacity;
     }
     else if (new_capacity < vec->size)
     {
-        // 如果新大小小于当前大小，清空多余的元素（可选择不清空）
-        // memset((char *)vec->data + new_capacity * vec->elem_size, 0, (vec->size - new_capacity) * vec->elem_size);
         vec->size = new_capacity;
     }
     //
@@ -180,7 +167,7 @@ void new_vector_free(NewVector *vec)
 {
     if (vec->data)
     {
-        pfree(vec->data);
+        free(vec->data);
         // vec->data = NULL;
     }
     vec->data = NULL;
