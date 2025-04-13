@@ -324,7 +324,7 @@ float get_distance_to_target_by_id(uint32_t vec_id, Vector *vec_b, uint32_t dim)
     // DEBUG
     // 从压缩向量中获取向量聚类中心
     // 再从码本中获取向量
-    elog(INFO, "get_distance starts");
+    //elog(INFO, "get_distance starts");
     if (static_compressed_data == NULL || static_pivot_data == NULL)
     {
         elog(ERROR, "static_compressed_data or static_pivot_data is NULL");
@@ -336,7 +336,7 @@ float get_distance_to_target_by_id(uint32_t vec_id, Vector *vec_b, uint32_t dim)
 
     float *vector_b = vec_b->x;
     float dist = get_distance(vector_a, vector_b, dim);
-    elog(INFO, "get_distance ends");
+    //elog(INFO, "get_distance ends");
     return dist;
 }
 

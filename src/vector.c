@@ -1668,6 +1668,7 @@ Datum test_recall(PG_FUNCTION_ARGS)
 	int32_t count = 0;
 	while (true)
 	{
+
 		size_t n_header = fread(&dim, sizeof(uint32_t), 1, file);
 		if (n_header == 0)
 		{
@@ -1679,8 +1680,9 @@ Datum test_recall(PG_FUNCTION_ARGS)
 				elog(ERROR, "error reading");
 			}
 		}
+		elog(INFO, "truth value:%d,%d,%d,%d,%d", ids[count * 10], ids[count * 10 + 1], ids[count * 10 + 2], ids[count * 10 + 3], ids[count * 10 + 4]);
+		elog(INFO, "truth value:%d,%d,%d,%d,%d", ids[count * 10 + 5], ids[count * 10 + 6], ids[count * 10 + 7], ids[count * 10 + 8], ids[count * 10 + 9]);
 		bytes_read += 1 * sizeof(uint32_t);
-		elog(INFO, "dim:%d", dim);
 		size_t n = fread(buffer, sizeof(float), dim, file);
 		// 将数组转化为vector
 		Vector *vec = InitVector(dim);
@@ -1697,16 +1699,11 @@ Datum test_recall(PG_FUNCTION_ARGS)
 		const char *table_name = "vectors_index_table";
 		uint32_t init_id = rand() % 10000; // 0-9999
 		uint32_t k = 10;
-		NewVector *target_nbrs = search_k_nearest_neighbors(table_name, init_id, k, vec, vec->dim);
+		NewVector *target_nbrs = search_k_nearest_neighbors(table_name, init_id, k, vec, 5000);
 		for (uint32_t i = 0; i < target_nbrs->size; i++)
 		{
 			uint32_t *val = new_vector_get(target_nbrs, i);
 			elog(INFO, "search value:%d", *val);
-		}
-		for (int i = 0; i < 10; i++)
-		{
-			elog(INFO, "truth value:%d,%d,%d,%d,%d", ids[i * 10], ids[i * 10 + 1], ids[i * 10 + 2], ids[i * 10 + 3], ids[i * 10 + 4]);
-			elog(INFO, "truth value:%d,%d,%d,%d,%d", ids[i * 10 + 5], ids[i * 10 + 6], ids[i * 10 + 7], ids[i * 10 + 8], ids[i * 10 + 9]);
 		}
 	}
 

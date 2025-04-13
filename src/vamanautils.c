@@ -522,7 +522,7 @@ NewVector* search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
             // 判断哪些在内存哪些不在
             // 先全部从磁盘中获取
             uint32_t n_id = ((Neighbor *)new_vector_get(full_retset, i))->id;
-            elog(INFO, "isert_id: %d", n_id);
+            //elog(INFO, "isert_id: %d", n_id);
             // int ret = kv_insert(my_kv_table, n_id, i);
             // if (ret == 0)
             // {
@@ -541,7 +541,7 @@ NewVector* search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
         for (size_t i = 0; i < full_retset->size; i++)
         {
             VectorCache *cur = new_vector_get(frontier_nhoods, i);
-            elog(INFO, "isert_id: %d", cur->vector_id);
+            //elog(INFO, "isert_id: %d", cur->vector_id);
             float true_dist = vector_L2_distance(target->dim, target->x, cur->vector->x);
             Neighbor *nbr = (Neighbor *)new_vector_get(full_retset, i);
             nbr->distance = true_dist;
