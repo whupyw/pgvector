@@ -18,6 +18,7 @@
 #include <errno.h>
 #include "vamana_index.h"
 #include "store_index.h"
+#include <sys/resource.h>
 #define MAX_PARAM_COUNT 9
 
 #define NUM_PQ_CENTROIDS 256
@@ -1063,6 +1064,13 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
 
     /* 构建索引 */
     // ereport(LOG, (errmsg("开始构建索引: R=%u, L=%u, 线程数=%u", R, L, num_threads)));
+    struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "Memory usage: %ld kB\n", usage.ru_maxrss);
     elog(LOG, "开始构建索引: R=%u, L=%u, 线程数=%u", R, L, num_threads);
 
     // 生成量化数据
