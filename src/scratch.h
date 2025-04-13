@@ -22,10 +22,10 @@ void init_scratch(Scratch *scratch, size_t vector_capacity, size_t L_Size, size_
 {
     // 初始化 NewVector
     scratch->expanded_nodes = (NewVector *)palloc(sizeof(NewVector));
-    new_vector_init(scratch->expanded_nodes, sizeof(Neighbor)); // 使用 NewVector 的初始化函数
+    new_vector_init_with_capacity(scratch->expanded_nodes, sizeof(Neighbor),70); // 使用 NewVector 的初始化函数
 
     // 初始化 bit_array
-    scratch->is_visited = (uint32_t *)calloc(vector_capacity, sizeof(uint32_t)); // 使用 palloc0 确保初始化为0
+    scratch->is_visited = (uint32_t *)calloc(vector_capacity/32+1, sizeof(uint32_t)); // 使用 palloc0 确保初始化为0
 
     // 初始化 NeighborPriorityQueue
     scratch->best_L_nodes = (NeighborPriorityQueue *)palloc(sizeof(NeighborPriorityQueue));
