@@ -1594,7 +1594,7 @@ Datum test_func(PG_FUNCTION_ARGS)
 	// 	PrintVector(buf, cur_cache->vector);
 	// }
 
-	//测试新写的搜索函数
+	// 测试新写的搜索函数
 	Vector *target = InitVector(128);
 	// get_vector_in_database("vectors_index_table", 1, target);
 
@@ -1606,7 +1606,115 @@ Datum test_func(PG_FUNCTION_ARGS)
 	PrintVector(printVec, target);
 	elog(INFO, "target:%s", printVec);
 	search_k_nearest_neighbors("vectors_index_table", 30, 10, target, 128);
+	PG_RETURN_NULL();
+}
 
+PG_FUNCTION_INFO_V1(test_recall);
+Datum test_recall(PG_FUNCTION_ARGS)
+{
+	// 加载真值集
+	File *truth_file;
+	const char *truthfilepath = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_groundtruth.ivecs";
+	if ((truth_file = fopen(truthfilepath, "rb")) == NULL)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("Cannot open file: %s", truthfilepath)));
+	int32_t *ids = (int32_t *)palloc(100 * 10 * sizeof(int32_t));
+	int32_t *new_buffer = (int32_t *)palloc(100 * sizeof(int32_t));
+	// int32_t *tmp = (int32_t *)palloc(10 * sizeof(int32_t));
+	int32_t num = 0;
+	int32_t count_query = 0;
+	while (true)
+	{
+		size_t n_header = fread(&num, sizeof(int32_t), 1, truth_file);
+		if (n_header == 0)
+		{
+			if (feof(truth_file))
+			{
+				break;
+			}
+			else
+			{
+				elog(ERROR, "error reading");
+			}
+		}
+		size_t n = fread(new_buffer, sizeof(int32_t), 100, truth_file);
+		// memcpy函数使用注意点 在dest指针中使用加减法时，注意指针的类型
+		memcpy(ids + count_query * 10, new_buffer, 10 * sizeof(int32_t));
+		count_query++;
+		elog(INFO, "count_query:%d", count_query);
+	}
 
+	for (int i = 0; i < 10; i++)
+	{
+		elog(INFO, "PRINT:%d", ids[i * 10]);
+	}
+
+	// 加载query数据集
+	float *buffer;
+	const char *filepath = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_query.fvecs";
+	FILE *file;
+	uint32_t dim = 128;
+
+	if ((file = fopen(filepath, "rb")) == NULL)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("Cannot open file: %s", filepath)));
+	uint32_t ndims_i32;
+	size_t expected_bytes = 0, bytes_read = 0;
+	// 读取dim
+	// 读取数据
+	buffer = (float *)palloc(dim * sizeof(float));
+	int32_t count = 0;
+	while (true)
+	{
+		size_t n_header = fread(&dim, sizeof(uint32_t), 1, file);
+		if (n_header == 0)
+		{
+			if (feof(file))
+				break; // 正常结束
+			else
+			{
+				// 处理读取错误
+				elog(ERROR, "error reading");
+			}
+		}
+		bytes_read += 1 * sizeof(uint32_t);
+		elog(INFO, "dim:%d", dim);
+		size_t n = fread(buffer, sizeof(float), dim, file);
+		// 将数组转化为vector
+		Vector *vec = InitVector(dim);
+		for (int i = 0; i < dim; i++)
+		{
+			vec->x[i] = buffer[i];
+		}
+		char *msg;
+		count++;
+		bytes_read += n * sizeof(float);
+
+		// 计算召回率
+		// 进行查询
+		const char *table_name = "vectors_index_table";
+		uint32_t init_id = rand() % 10000; // 0-9999
+		uint32_t k = 10;
+		NewVector *target_nbrs = search_k_nearest_neighbors(table_name, init_id, k, vec, vec->dim);
+		for (uint32_t i = 0; i < target_nbrs->size; i++)
+		{
+			uint32_t *val = new_vector_get(target_nbrs, i);
+			elog(INFO, "search value:%d", *val);
+		}
+		for (int i = 0; i < 10; i++)
+		{
+			elog(INFO, "truth value:%d,%d,%d,%d,%d", ids[i * 10], ids[i * 10 + 1], ids[i * 10 + 2], ids[i * 10 + 3], ids[i * 10 + 4]);
+			elog(INFO, "truth value:%d,%d,%d,%d,%d", ids[i * 10 + 5], ids[i * 10 + 6], ids[i * 10 + 7], ids[i * 10 + 8], ids[i * 10 + 9]);
+		}
+	}
+
+	pfree(ids);
+	pfree(buffer);
+	pfree(new_buffer);
+	fclose(file);
+	fclose(truth_file);
+	// 对比结果 计算召回率
 	PG_RETURN_NULL();
 }

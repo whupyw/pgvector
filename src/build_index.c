@@ -1080,7 +1080,12 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     elog(LOG, "开始构建索引");
     build_merged_vamana_index(pq_pivots_path, pq_compressed_vectors_path, indexing_ram_budget, R, L, num_threads, 25000, 128);
     /* 清理临时文件（如果有的话） */
-
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "Memory usage: %ld kB\n", usage.ru_maxrss);
     create_disk_laylout(table_name);
     pfree(pq_pivots_path);
     pfree(pq_compressed_vectors_path);
