@@ -195,8 +195,8 @@ InitBuildState(VamanaBuildState *buildstate, Relation heap, Relation index, Inde
     buildstate->data_table_name = pstrdup(RelationGetRelationName(heap));
 
     buildstate->dimensions = 128;
-    buildstate->R = 20;
-    buildstate->L = 30;
+    buildstate->R = 32;
+    buildstate->L = 64;
     buildstate->B = 1024;
     buildstate->M = 1024;
     buildstate->T = 1;
@@ -250,7 +250,7 @@ static void BuildGraph(VamanaBuildState *buildstate, ForkNumber forkNum)
     //  gen_random_slice(aa, npt_val, dim_val, 0.01, &storage, &slice_size);
     const char *dataFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_learn.fbin";
     const char *indexFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test";
-    // R 10 邻居数 L 20 最大候选集大小
+    // R 32 邻居数 L 64 最大候选集大小
     const char *buildParams = "32 64 200 1 1";
     enum diskann_metric_t metric = DISKANN_L2; // 假设使用 L2 作为度量方式
     int use_opq = false;                       // 启用 OPQ
