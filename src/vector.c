@@ -1619,11 +1619,16 @@ Datum test_recall(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("Cannot open file: %s", truthfilepath)));
-	int32_t *ids = (int32_t *)palloc(100 * 10 * sizeof(int32_t));
-	int32_t *new_buffer = (int32_t *)palloc(100 * sizeof(int32_t));
+	int32_t *ids = (int32_t *)malloc(100 * 10 * sizeof(int32_t));
+	int32_t *new_buffer = (int32_t *)malloc(100 * sizeof(int32_t));
 	// int32_t *tmp = (int32_t *)palloc(10 * sizeof(int32_t));
 	int32_t num = 0;
 	int32_t count_query = 0;
+
+	// recall
+	float recall_sum = 0.0;
+	int query_total = 100; // 总查询数量
+	int k = 10;
 	while (true)
 	{
 		size_t n_header = fread(&num, sizeof(int32_t), 1, truth_file);
@@ -1664,7 +1669,7 @@ Datum test_recall(PG_FUNCTION_ARGS)
 	size_t expected_bytes = 0, bytes_read = 0;
 	// 读取dim
 	// 读取数据
-	buffer = (float *)palloc(dim * sizeof(float));
+	buffer = (float *)malloc(dim * sizeof(float));
 	int32_t count = 0;
 	while (true)
 	{
@@ -1680,7 +1685,7 @@ Datum test_recall(PG_FUNCTION_ARGS)
 				elog(ERROR, "error reading");
 			}
 		}
-		elog(INFO,"count:%d", count);
+		//elog(INFO, "count:%d", count);
 		// 读取数据
 		elog(INFO, "truth value:%d,%d,%d,%d,%d", ids[count * 10], ids[count * 10 + 1], ids[count * 10 + 2], ids[count * 10 + 3], ids[count * 10 + 4]);
 		elog(INFO, "truth value:%d,%d,%d,%d,%d", ids[count * 10 + 5], ids[count * 10 + 6], ids[count * 10 + 7], ids[count * 10 + 8], ids[count * 10 + 9]);
@@ -1692,26 +1697,49 @@ Datum test_recall(PG_FUNCTION_ARGS)
 		{
 			vec->x[i] = buffer[i];
 		}
-		char *msg;
+		MyPrintVector(vec);
 		count++;
 		bytes_read += n * sizeof(float);
 
-		// 计算召回率
 		// 进行查询
 		const char *table_name = "vectors_index_table";
 		uint32_t init_id = rand() % 10000; // 0-9999
 		uint32_t k = 10;
 		NewVector *target_nbrs = search_k_nearest_neighbors(table_name, init_id, k, vec, 5000);
+		char result[1024]; // 足够大的输出缓冲区
+		new_vector_to_string(target_nbrs, result, sizeof(result));
+		elog(INFO, "result:%s", result);
+
+		// 计算召回率
+		int hit = 0;
+		int32_t *truth_topk = &ids[count * k];
+
+		// 遍历搜索结果，统计有多少在真值集合里
 		for (uint32_t i = 0; i < target_nbrs->size; i++)
 		{
-			uint32_t *val = new_vector_get(target_nbrs, i);
-			elog(INFO, "search value:%d", *val);
+			uint32_t *pred_id = new_vector_get(target_nbrs, i);
+			for (int j = 0; j < k; j++)
+			{
+				if (*pred_id == truth_topk[j])
+				{
+					hit++;
+					break; // 找到后退出内层循环，避免重复计数
+				}
+			}
 		}
+
+		// 本次查询的召回率
+		float recall = (float)hit / (float)k;
+		elog(INFO, "Query %d recall: %.2f", count, recall);
+		recall_sum += recall;
 	}
 
-	pfree(ids);
-	pfree(buffer);
-	pfree(new_buffer);
+	float avg_recall = recall_sum / query_total;
+	elog(INFO, "Average recall: %.4f", avg_recall);
+
+	free(ids);
+	free(buffer);
+	free(new_buffer);
 	fclose(file);
 	fclose(truth_file);
 	// 对比结果 计算召回率
