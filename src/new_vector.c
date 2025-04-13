@@ -128,7 +128,7 @@ void new_vector_reserve(NewVector *vec, size_t new_capacity)
     if (new_capacity > vec->capacity)
     {
         // vec->data = realloc(vec->data, vec->capacity * vec->elem_size);
-        void *new_data = realloc(new_capacity * vec->elem_size);
+        void *new_data = realloc(vec->data, new_capacity * vec->elem_size);
 
         // 如果 alloc 失败，保持原有内存不变
         if (new_data != NULL)
