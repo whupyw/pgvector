@@ -356,7 +356,8 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
     // 起始点
     size_t init_id = scratch->entry_point;
     // 已访问节点
-    uint32_t *is_visited = scratch->is_visited;
+    size_t num_of_vec = scratch->max_point;
+    uint32_t *is_visited = (uint32_t *)calloc(num_of_vec / 32 + 1, sizeof(uint32_t));
     // 已扩展的邻域
     NewVector *expanded_nodes = scratch->expanded_nodes;
     // 2.处理初始节点
@@ -449,6 +450,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
     vector_free(dist_scratch);
     pfree(id_scratch);
     pfree(dist_scratch);
+    free(is_visited);
 }
 
 void occlude_list(uint32_t location, NewVector *pool, float alpha, MyVector *pruned_list, uint32_t max_candidate_size, uint32_t R, Scratch *scratch)
@@ -736,7 +738,7 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
                 // 将node加入到des的邻居 并剪枝
                 // DEBUG
                 copy_neighbors = (NewVector *)palloc(sizeof(NewVector));
-                new_vector_init(copy_neighbors, sizeof(uint32_t));
+                new_vector_init_with_capacity(copy_neighbors, sizeof(uint32_t), R + 10);
                 for (size_t i = 0; i < des_neighbors->size; i++)
                 {
                     uint32_t *cur_node_pointer = new_vector_get(des_neighbors, i);
@@ -769,11 +771,11 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
                     float dist = get_distance_by_id(des_id, cur_node);
                     Neighbor cur_nbr = {cur_node, dist};
                     new_vector_push_back(dummy_pool, &cur_nbr);
-                    set_bit(dummy_visited, (size_t)cur_node);
+                    // set_bit(dummy_visited, (size_t)cur_node);
                 }
             }
             MyVector *new_out_neighbors = (MyVector *)palloc(sizeof(MyVector));
-            vector_init_with_capacity(new_out_neighbors,50);
+            vector_init_with_capacity(new_out_neighbors, 50);
             // prune_neighbors(cur_node, scratch, new_out_neighbors, max_candidate_size, alpha, R);
             float alpha = 1.20000005;
             new_prune_neighbors(des_id, dummy_pool, new_out_neighbors, max_candidate_size, alpha, R, scratch);
@@ -855,7 +857,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
         inter_insert(i, pruned_list, R, scratch);
 
         // elog(INFO, "pruned_list");
-        // vector_free(pruned_list);
+        vector_free(pruned_list);
         // elog(INFO, "pruned_list end");
         pfree(pruned_list);
         if (query)
@@ -895,7 +897,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
                 {
                     float dist = get_distance_by_id(i, cur_node);
                     new_vector_push_back(dummy_pool, cur_node_pointer);
-                    set_bit(dummy_visited, (size_t)cur_node);
+                    // set_bit(dummy_visited, (size_t)cur_node);
                 }
             }
             float alpha = 1.20000005;
@@ -906,13 +908,41 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
                 pfree(dummy_pool);
             if (dummy_visited)
                 free(dummy_visited);
+            if (new_out_neighbors)
+                vector_free(new_out_neighbors);
             pfree(new_out_neighbors);
         }
         free_scratch(scratch);
         pfree(scratch);
         // prune_neighbors();
     }
+    // // 打印邻域
 
+    // for (size_t i = 0; i < static_neighbors_vectors->size; i++)
+    // {
+    //     char out[1000];
+    //     size_t out_size = 2000;
+    //     char temp[32];
+    //     NewVector *cur_neighbors = new_vector_get(static_neighbors_vectors, i);
+
+    //     for (size_t j = 0; j < cur_neighbors->size; j++)
+    //     {
+    //         uint32_t *cur_node_pointer = new_vector_get(cur_neighbors, j);
+    //         uint32_t cur_node = *cur_node_pointer;
+
+    //         snprintf(temp, sizeof(temp), "%u", cur_node); // 将 uint32_t 转为字符串
+
+    //         // 拼接到最终字符串
+    //         strncat(out, temp, out_size - strlen(out) - 1);
+
+    //         // 添加逗号和空格分隔符（如果不是最后一个元素）
+    //         if (i < cur_neighbors->size - 1)
+    //         {
+    //             strncat(out, ", ", out_size - strlen(out) - 1);
+    //         }
+    //     }
+    //     elog(INFO, "node:%d,neighbours:%d,neighbor:%s", i, cur_neighbors->size,out);
+    // }
     elog(INFO, "Linking completed.");
 }
 

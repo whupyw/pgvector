@@ -223,7 +223,7 @@ InitBuildState(VamanaBuildState *buildstate, Relation heap, Relation index, Inde
 static void BuildGraph(VamanaBuildState *buildstate, ForkNumber forkNum)
 {
     int parallel_workers = 0;
-    pgstat_progress_update_param(PROGRESS_CREATEIDX_SUBPHASE, PROGRESS_VAMANA_PHASE_LOAD);
+    //pgstat_progress_update_param(PROGRESS_CREATEIDX_SUBPHASE, PROGRESS_VAMANA_PHASE_LOAD);
 
     // /* Add tuples to graph */
     // if (buildstate->heap != NULL)
@@ -256,8 +256,8 @@ static void BuildGraph(VamanaBuildState *buildstate, ForkNumber forkNum)
     int use_opq = false;                       // 启用 OPQ
     const char *codebookPrefix = "/path/to/codebook";
     int status = build_disk_index(dataFile, indexFile, buildParams, metric, use_opq, codebookPrefix, buildstate->index_table_name, "embedding");
-    if (!buildstate->graph->flushed)
-        FlushPages(buildstate);
+    // if (!buildstate->graph->flushed)
+    //     FlushPages(buildstate);
 }
 
 /*

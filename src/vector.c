@@ -1599,17 +1599,8 @@ Datum test_func(PG_FUNCTION_ARGS)
 	// elog(INFO, "target:%s", printVec);
 	// search_k_nearest_neighbors("vectors_index_table", 30, 10, target, 128);
 
-	// 测试bitarray
-	uint32_t *is_visited = (uint32_t *)calloc(10, sizeof(uint32_t)); // 应该可以记录320个
-	set_bit(is_visited, 0);
-	test_bit(is_visited, 0);
-	uint32_t R = 20;
-	set_bit(is_visited, R);
-	set_bit(is_visited, 60);
-	free(is_visited);
-	is_visited = (uint32_t *)calloc(10, sizeof(uint32_t)); // 应该可以记录320个
-	set_bit(is_visited, 330);
-	free(is_visited);
+	// 测试构建索引
+	
 	PG_RETURN_NULL();
 }
 

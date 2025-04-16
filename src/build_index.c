@@ -1087,7 +1087,7 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
         return 1;
     }
     elog(INFO, "Memory usage: %ld kB\n", usage.ru_maxrss);
-    create_disk_laylout(table_name, neighbor_pointer);
+    //create_disk_laylout(table_name, neighbor_pointer);
     pfree(pq_pivots_path);
     pfree(pq_compressed_vectors_path);
     free(buildParams);
