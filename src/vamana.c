@@ -97,9 +97,16 @@ Datum vamanahandler(PG_FUNCTION_ARGS)
     amroutine->amkeytype = InvalidOid;
 
     /* 接口函数 */
-    /* 索引构建相关函数 */
+    // 索引构建和查找相关函数
     amroutine->ambuild = vamanabuild;
     amroutine->ambuildempty = vamanabuildempty;
+    amroutine->amoptions = vamanaoptions;
+    amroutine->ambeginscan = vamanabeginscan;
+    amroutine->amrescan = vamanarescan;
+    amroutine->amgettuple = vamanagettuple;
+    amroutine->amendscan = vamanaendscan;
+
+
     amroutine->aminsert = vamanainsert;
     amroutine->ambulkdelete = vamanabulkdelete;
     amroutine->amvacuumcleanup = vamanavacuumcleanup;
@@ -107,17 +114,15 @@ Datum vamanahandler(PG_FUNCTION_ARGS)
     /* 扫描相关函数 */
     amroutine->amcanreturn = NULL; /* 不支持索引覆盖扫描 */
     amroutine->amcostestimate = vamanacostestimate;
-    amroutine->amoptions = vamanaoptions;
+    
     amroutine->amproperty = NULL; /* 未定义特殊属性 */
     amroutine->ambuildphasename = vamanabuildphasename;
     amroutine->amvalidate = vamanavalidate;
 
     /* 扫描迭代器函数 */
-    amroutine->ambeginscan = vamanabeginscan;
-    amroutine->amrescan = vamanarescan;
-    amroutine->amgettuple = vamanagettuple;
+    
     amroutine->amgetbitmap = NULL; /* 不支持bitmap扫描 */
-    amroutine->amendscan = vamanaendscan;
+    
     amroutine->ammarkpos = NULL;  /* 不支持标记位置 */
     amroutine->amrestrpos = NULL; /* 不支持恢复位置 */
 

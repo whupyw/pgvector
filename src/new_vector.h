@@ -6,10 +6,10 @@
 
 typedef struct
 {
-    void *data;       // 任意类型的数据
     size_t elem_size; // 每个元素大小（如 sizeof(Neighbor)）
     size_t size;      // 当前元素数量
     size_t capacity;  // 分配的元素数量
+    void *data;       // 任意类型的数据
 } NewVector;
 
 // 初始化

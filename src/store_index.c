@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include "my_vector.h"
 
-extern const NewVector *static_neighbors_vectors;
+// extern const NewVector *static_neighbors_vectors;
 
-bool create_disk_laylout(const char *table_name)
+bool create_disk_laylout(const char *table_name, NewVector *static_neighbors_vectors)
 {
     elog(INFO, "create disk layout");
     bool ret = save_neighbors_to_disk(static_neighbors_vectors, table_name);
@@ -42,6 +42,7 @@ bool save_neighbors_to_disk(NewVector *neighbors, const char *table_name)
         return false;
     }
     // 记录所有id 1->numpoint
+    elog(INFO, "分配id");
     MyVector *ids = (MyVector *)palloc(sizeof(MyVector));
     vector_init(ids);
     for (size_t i = 0; i < npts; i++)
@@ -55,7 +56,7 @@ bool save_neighbors_to_disk(NewVector *neighbors, const char *table_name)
         // 记录id
         vector_push_back(ids, id);
     }
-
+    elog(INFO, "记录id");
     // 遍历每一条记录，根据 `id` 更新邻居
     for (size_t i = 0; i < npts; i++)
     {
@@ -80,7 +81,7 @@ bool save_neighbors_to_disk(NewVector *neighbors, const char *table_name)
         }
         char query[256];
         snprintf(query, sizeof(query), "UPDATE %s SET neighbors = ARRAY[%s] WHERE vector_id = %d", table_name, array_string, id);
-        //elog(INFO, "Executing query: %s", query);
+        elog(LOG, "Executing query: %s", query);
 
         // 执行更新操作
         ret = SPI_exec(query, 1); // 更新 1 行

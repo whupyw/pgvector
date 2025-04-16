@@ -27,7 +27,7 @@ void new_vector_push_back(NewVector *vec, const void *value)
     {
         vec->capacity *= 2;
         // vec->data = realloc(vec->data, vec->capacity * vec->elem_size);
-        void *new_data = realloc(vec->data, vec->capacity * vec->elem_size);
+        void *new_data = realloc(vec->data, (vec->capacity * vec->elem_size));
 
         // 如果 realloc 失败，保持原有内存不变
         if (new_data == NULL)

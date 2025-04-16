@@ -34,17 +34,24 @@ void vector_init_with_capacity(MyVector *vec, size_t capacity)
 // 扩展向量容量
 void vector_reserve(MyVector *vec, size_t new_capacity)
 {
-    if(vec->capacity == new_capacity)
-    return;
-    uint32_t *new_data = (uint32_t *)realloc(vec->data, new_capacity * sizeof(uint32_t));
-    if (new_data == NULL)
+    if (vec->capacity == new_capacity)
+        return;
+    // uint32_t *new_data = (uint32_t *)realloc(vec->data, new_capacity * sizeof(uint32_t));
+    // if (new_data == NULL)
+    // {
+    //     fprintf(stderr, "Memory reallocation failed\n");
+    //     free(vec->data);
+    //     exit(1);
+    // }
+    if (new_capacity > vec->capacity)
     {
-        fprintf(stderr, "Memory reallocation failed\n");
+        uint32_t *new_data = (uint32_t *)malloc(new_capacity * sizeof(uint32_t));
+        memcpy(new_data, vec->data, vec->size * sizeof(uint32_t));
         free(vec->data);
-        exit(1);
+        vec->data = NULL;
+        vec->data = new_data;
+        vec->capacity = new_capacity;
     }
-    vec->data = new_data;
-    vec->capacity = new_capacity;
 }
 
 // 插入元素
