@@ -38,6 +38,7 @@
 #include "store_index.h"
 #if PG_VERSION_NUM >= 160000
 #include "varatt.h"
+#include "bit_array.h"
 #endif
 
 #define STATE_DIMS(x) (ARR_DIMS(x)[0] - 1)
@@ -1586,17 +1587,29 @@ Datum test_func(PG_FUNCTION_ARGS)
 	// }
 
 	// 测试新写的搜索函数
-	Vector *target = InitVector(128);
-	// get_vector_in_database("vectors_index_table", 1, target);
+	// Vector *target = InitVector(128);
+	// // get_vector_in_database("vectors_index_table", 1, target);
 
-	for (uint32_t i = 0; i < 128; i++)
-	{
-		target->x[i] = i % 64;
-	}
-	char *printVec;
-	PrintVector(printVec, target);
-	elog(INFO, "target:%s", printVec);
-	search_k_nearest_neighbors("vectors_index_table", 30, 10, target, 128);
+	// for (uint32_t i = 0; i < 128; i++)
+	// {
+	// 	target->x[i] = i % 64;
+	// }
+	// char *printVec;
+	// PrintVector(printVec, target);
+	// elog(INFO, "target:%s", printVec);
+	// search_k_nearest_neighbors("vectors_index_table", 30, 10, target, 128);
+
+	// 测试bitarray
+	uint32_t *is_visited = (uint32_t *)calloc(10, sizeof(uint32_t)); // 应该可以记录320个
+	set_bit(is_visited, 0);
+	test_bit(is_visited, 0);
+	uint32_t R = 20;
+	set_bit(is_visited, R);
+	set_bit(is_visited, 60);
+	free(is_visited);
+	is_visited = (uint32_t *)calloc(10, sizeof(uint32_t)); // 应该可以记录320个
+	set_bit(is_visited, 330);
+	free(is_visited);
 	PG_RETURN_NULL();
 }
 

@@ -410,7 +410,7 @@ NewVector *search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
     init_node.id = init_id;
     init_node.distance = dist;
     priority_queue_insert(retset, init_node);
-    set_bit(is_visited, init_id);
+    set_bit(is_visited, (size_t)init_id);
 
     // 先不用缓存
     while (has_unexpanded_node(retset) && num_ios < (io_limit + 10000))
@@ -484,7 +484,7 @@ NewVector *search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
             for (uint32_t m = 0; m < n_count; m++)
             {
                 uint32_t id = item->neighbors[m];
-                if (!test_bit(is_visited, id))
+                if (!test_bit(is_visited, (size_t)id))
                 {
                     // 如果没访问过
                     // 计算距离 应该是计算与查询向量的距离
@@ -493,7 +493,7 @@ NewVector *search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
                     nn.id = id;
                     nn.distance = distance;
                     nn.expanded = false;
-                    set_bit(is_visited, id);
+                    set_bit(is_visited, (size_t)id);
                     // 将邻居加入候选集
                     priority_queue_insert(retset, nn);
                 }

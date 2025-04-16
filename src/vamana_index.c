@@ -366,7 +366,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
     {
         elog(ERROR, "init_id is out of range");
     }
-    set_bit(is_visited, init_id); // 将初始节点标记为已访问
+    set_bit(is_visited, (size_t)init_id); // 将初始节点标记为已访问
 
     // 将初始节点加入候选集
     float *init_vector = (float *)palloc(sizeof(float) * 128);
@@ -406,13 +406,13 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
                 elog(ERROR, "neighbor_id is out of range");
                 return;
             }
-            if (test_bit(is_visited, neighbor_id))
+            if (test_bit(is_visited, (size_t)neighbor_id))
             {
                 continue;
             }
             else
             {
-                set_bit(is_visited, neighbor_id); // 标记为已访问
+                set_bit(is_visited, (size_t)neighbor_id); // 标记为已访问
             }
 
             // 计算该节点和距离
@@ -764,12 +764,12 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
             {
                 uint32_t *cur_node_pointer = new_vector_get(copy_neighbors, i);
                 uint32_t cur_node = *cur_node_pointer;
-                if (!test_bit(dummy_visited, cur_node) && cur_node != des_id)
+                if (!test_bit(dummy_visited, (size_t)cur_node) && cur_node != des_id)
                 {
                     float dist = get_distance_by_id(des_id, cur_node);
                     Neighbor cur_nbr = {cur_node, dist};
                     new_vector_push_back(dummy_pool, &cur_nbr);
-                    set_bit(dummy_visited, cur_node);
+                    set_bit(dummy_visited, (size_t)cur_node);
                 }
             }
             MyVector *new_out_neighbors = (MyVector *)palloc(sizeof(MyVector));
@@ -891,11 +891,11 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
                 uint32_t *cur_node_pointer = new_vector_get(cur_neighbors, j);
                 uint32_t cur_node = *cur_node_pointer;
                 // 如果节点不在已访问列表中 且不是自身
-                if (!test_bit(dummy_visited, cur_node) && cur_node != i)
+                if (!test_bit(dummy_visited, (size_t)cur_node) && cur_node != i)
                 {
                     float dist = get_distance_by_id(i, cur_node);
                     new_vector_push_back(dummy_pool, cur_node_pointer);
-                    set_bit(dummy_visited, cur_node);
+                    set_bit(dummy_visited, (size_t)cur_node);
                 }
             }
             float alpha = 1.20000005;
