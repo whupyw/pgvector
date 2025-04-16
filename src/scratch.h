@@ -15,6 +15,7 @@ typedef struct
     NewVector *expanded_nodes;           // 已经扩展的节点
     //uint32_t *is_visited;                // 已经访问的节点
     NeighborPriorityQueue *best_L_nodes; // 指向 NeighborPriorityQueue
+    NewVector *neighbors;
 } Scratch;
 
 // 初始化 Scratch 结构体的方法
@@ -35,6 +36,7 @@ void init_scratch(Scratch *scratch, size_t vector_capacity, size_t L_Size, size_
     scratch->max_point = vector_capacity;
 
     scratch->cur_node = cur_node;
+    scratch->neighbors = NULL;
 }
 
 // 清理 Scratch 结构体占用的内存

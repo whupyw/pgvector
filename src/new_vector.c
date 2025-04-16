@@ -28,7 +28,7 @@ void new_vector_push_back(NewVector *vec, const void *value)
         vec->capacity *= 2;
         // vec->data = realloc(vec->data, vec->capacity * vec->elem_size);
         void *new_data = palloc(vec->capacity * vec->elem_size);
-        memcpy((char *)vec->data, (char *)new_data, vec->elem_size*vec->size);
+        memcpy((char *)new_data, (char *)vec->data, vec->elem_size * vec->size);
         pfree(vec->data);
         vec->data = new_data;
     }
@@ -120,17 +120,26 @@ bool new_vector_truncate(NewVector *vec, size_t new_size)
 
 void new_vector_reserve(NewVector *vec, size_t new_capacity)
 {
-    if (new_capacity > vec->capacity)
-    {
-        // vec->data = realloc(vec->data, vec->capacity * vec->elem_size);
-        void *new_data = realloc(vec->data, new_capacity * vec->elem_size);
+    // if (new_capacity > vec->capacity)
+    // {
+    //     // vec->data = realloc(vec->data, vec->capacity * vec->elem_size);
+    //     void *new_data = realloc(vec->data, new_capacity * vec->elem_size);
 
-        // 如果 alloc 失败，保持原有内存不变
-        if (new_data != NULL)
-        {
-            vec->data = new_data;
-            vec->capacity = new_capacity;
-        }
+    //     // 如果 alloc 失败，保持原有内存不变
+    //     if (new_data != NULL)
+    //     {
+    //         vec->data = new_data;
+    //         vec->capacity = new_capacity;
+    //     }
+    // }
+    if (vec->size >= vec->capacity)
+    {
+        vec->capacity *= 2;
+        // vec->data = realloc(vec->data, vec->capacity * vec->elem_size);
+        void *new_data = palloc(vec->capacity * vec->elem_size);
+        memcpy((char *)new_data, (char *)vec->data, vec->elem_size * vec->size);
+        pfree(vec->data);
+        vec->data = new_data;
     }
     else if (new_capacity < vec->size)
     {

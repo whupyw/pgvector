@@ -81,7 +81,7 @@ bool save_neighbors_to_disk(NewVector *neighbors, const char *table_name)
         }
         char query[256];
         snprintf(query, sizeof(query), "UPDATE %s SET neighbors = ARRAY[%s] WHERE vector_id = %d", table_name, array_string, id);
-        elog(LOG, "Executing query: %s", query);
+        elog(INFO, "Executing query: %s", query);
 
         // 执行更新操作
         ret = SPI_exec(query, 1); // 更新 1 行

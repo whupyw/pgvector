@@ -46,7 +46,7 @@ void vector_reserve(MyVector *vec, size_t new_capacity)
     if (new_capacity > vec->capacity)
     {
         uint32_t *new_data = (uint32_t *)malloc(new_capacity * sizeof(uint32_t));
-        memcpy(new_data, vec->data, vec->size * sizeof(uint32_t));
+        memcpy((char *)new_data, (char *)vec->data, vec->size * sizeof(uint32_t));
         free(vec->data);
         vec->data = NULL;
         vec->data = new_data;
