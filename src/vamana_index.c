@@ -24,6 +24,7 @@ const uint32_t *static_compressed_data = NULL;
 const float *static_pivot_data = NULL;
 const uint32_t *static_neighbors = NULL;
 NewVector *static_neighbors_vectors = NULL;
+float *static_vector_data = NULL;
 
 // 获取指定位置向量的邻居索引，存入数组中
 void get_neighbors(uint32_t point_index, uint32_t R, uint32_t *neighbors, uint32_t *result_neighbors)
@@ -348,10 +349,11 @@ float get_distance(float *vector1, float *vector2, size_t dim)
     return dist;
 }
 
-void get_vec_from_compressed_data(const float *compressed_data, float *pivots_data, uint32_t location, float *vector, uint32_t num_pq_chunks, uint32_t dim)
+void get_vec_from_compressed_data(const uint32_t *compressed_data, float *pivots_data, uint32_t location, float *vector, uint32_t num_pq_chunks, uint32_t dim)
 {
-    uint32_t *code = &compressed_data[location];
+    uint32_t *code = &compressed_data[location * num_pq_chunks];
     uint32_t subvector_dim = dim / num_pq_chunks;
+    uint32_t num_centers = 256;
 
     // 解码每个chunk
     for (uint32_t chunk = 0; chunk < num_pq_chunks; ++chunk)
@@ -362,7 +364,8 @@ void get_vec_from_compressed_data(const float *compressed_data, float *pivots_da
 
         // 找到查表的位置
         // float *pivot = pivots_data + (chunk * 256 + index) * subvector_dim;
-        float *pivot = pivots_data + index * dim + chunk * subvector_dim;
+        //float *pivot = pivots_data + index * dim + chunk * subvector_dim;
+        float *pivot = pivots_data + (chunk * num_centers + index) * subvector_dim;
 
         // 拷贝这个子向量到vector中对应位置
         memcpy(vector + chunk * subvector_dim, pivot, sizeof(float) * subvector_dim);
@@ -954,6 +957,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     NewVector *my_neighbors_vectors = (NewVector *)malloc(sizeof(NewVector));
     generate_random_neighbors_for_vector_empty(my_neighbors_vectors, (size_t)num_points, (size_t)R);
 
+
     // BFS贪心算法
     // 执行搜索，生成候选集
     // 从候选池中移除当前节点自身，避免自连接。
@@ -969,7 +973,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     size_t i;
     // 要存储初始点
     // size_t entry_point = calculate_entry(num_points);
-    size_t entry_point = 30;
+    size_t entry_point = 3732;
 
     // 遍历列表
     for (i = 0; i < num_points; i++)

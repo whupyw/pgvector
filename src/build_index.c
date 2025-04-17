@@ -648,7 +648,7 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
     elog(LOG, "Generating PQ pivots");
     /* Zero-mean normalization */
     float *centroid = (float *)palloc0(dim * sizeof(float));
-    make_zero_mean = false;
+    // make_zero_mean = false;
     if (make_zero_mean)
     {
         for (size_t d = 0; d < dim; d++)
@@ -669,7 +669,7 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
             }
         }
     }
-
+    // chunk_offsets记录原始向量中每个子向量的开始和结束位置
     size_t *chunk_offsets = (size_t *)palloc((num_pq_chunks + 1) * sizeof(size_t));
     size_t low_val = dim / num_pq_chunks;
     size_t high_val = (dim % num_pq_chunks) ? low_val + 1 : low_val;
@@ -681,7 +681,7 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
         chunk_offsets[i] = chunk_offsets[i - 1] + ((i <= num_high) ? high_val : low_val);
     }
 
-    full_pivot_data = (float *)palloc(num_centers * dim * sizeof(float));
+    full_pivot_data = (float *)palloc0(num_centers * dim * sizeof(float));
 
     for (size_t i = 0; i < num_pq_chunks; i++)
     {
@@ -694,7 +694,7 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
         uint32_t *closest_center = (uint32_t *)palloc(num_train * sizeof(uint32_t));
 
         elog(LOG, "Processing chunk %zu with dimensions [%zu, %zu)", i, chunk_offsets[i], chunk_offsets[i + 1]);
-
+        // 将每个原始向量对应的块的位置复制到cur_data中 已验证
         for (size_t j = 0; j < num_train; j++)
         {
             memcpy(cur_data + j * cur_chunk_size, train_data_copy + j * dim + chunk_offsets[i],
@@ -707,11 +707,14 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
 
         /* 2. 再使用 Lloyd’s 进行迭代优化 */
         run_lloyds(cur_data, num_train, cur_chunk_size, cur_pivot_data, num_centers, max_k_means_reps, closest_center);
-        for (size_t j = 0; j < num_centers; j++)
-        {
-            memcpy(full_pivot_data + j * dim + chunk_offsets[i], cur_pivot_data + j * cur_chunk_size,
-                   cur_chunk_size * sizeof(float));
-        }
+        // for (size_t j = 0; j < num_centers; j++)
+        // {
+        //     memcpy(full_pivot_data + j * dim + chunk_offsets[i], cur_pivot_data + j * cur_chunk_size,
+        //            cur_chunk_size * sizeof(float));
+        // }
+        memcpy(full_pivot_data + i * num_centers * cur_chunk_size,
+               cur_pivot_data,
+               num_centers * cur_chunk_size * sizeof(float));
 
         pfree(cur_pivot_data);
         pfree(cur_data);
@@ -817,7 +820,7 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
     fwrite(&num_pq_chunks, sizeof(uint32_t), 1, compressed_file_writer);
 
     block_size = (num_points <= 8192) ? num_points : 8192;
-    // block_compressed_base才是最小的分配向量中心的单位
+    // block_compressed_base是压缩后的向量 block_compressed_base才是最小的分配向量中心的单位
     block_compressed_base = (uint32_t *)palloc0(block_size * num_pq_chunks * sizeof(uint32_t));
     // 一次加载的向量数据
     block_data_tmp = (float *)palloc0(block_size * dim * sizeof(float));
@@ -841,13 +844,23 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
             size_t cur_chunk_size = chunk_offsets[i + 1] - chunk_offsets[i];
             // 这里好像不对，应该是 cur_blk_size
             uint32_t *closest_center = (uint32_t *)palloc(cur_blk_size * sizeof(uint32_t));
-            float *cur_block_data_temp = block_data_tmp + i * cur_chunk_size;
-            compute_closest_centers(cur_block_data_temp, cur_blk_size, cur_chunk_size, full_pivot_data, num_centers, closest_center);
+            // float *cur_block_data_temp = block_data_tmp + i * cur_chunk_size;
+
+            float *chunk_data = (float *)palloc(cur_blk_size * cur_chunk_size * sizeof(float));
+            for (size_t j = 0; j < cur_blk_size; j++)
+            {
+                memcpy(chunk_data + j * cur_chunk_size,
+                       block_data_tmp + j * dim + chunk_offsets[i],
+                       cur_chunk_size * sizeof(float));
+            }
+
+            compute_closest_centers(chunk_data, cur_blk_size, cur_chunk_size, full_pivot_data + i * num_centers * cur_chunk_size, num_centers, closest_center);
             for (j = 0; j < cur_blk_size; j++)
             {
                 block_compressed_base[j * num_pq_chunks + i] = closest_center[j];
             }
             pfree(closest_center);
+            pfree(chunk_data);
         }
 
         fwrite(block_compressed_base, sizeof(uint32_t), cur_blk_size * num_pq_chunks, compressed_file_writer);
