@@ -252,6 +252,8 @@ bool create_index_table(char *index_name, char *table_name, int dimensions);
 void get_vectors_and_neighbors(char *index_table_name, NewVector *re_vectors, NewVector *target_vectors);
 NewVector* search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
                                      int k, Vector *target, uint32_t vector_num);
+NewVector *new_search_k_nearest_neighbors(char *index_table_name, NewVector *init_ids,
+                                      int k, Vector *target, uint32_t vector_num);
 FmgrInfo *VamanaOptionalProcInfo(Relation index, uint16 procnum);
 const VamanaTypeInfo *VamanaGetTypeInfo(Relation index);
 void MyPrintVector(Vector *vector);

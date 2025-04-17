@@ -222,7 +222,7 @@ bool new_save_neighbors_to_disk(NewVector *neighbors, const char *table_name)
         appendStringInfo(&sql,
                          "UPDATE %s SET neighbors = ARRAY[%s] WHERE vector_id = %u",
                          table_name, array_string.data, id);
-        elog(INFO, "Executing query: %s", sql.data);
+        //elog(INFO, "Executing query: %s", sql.data);
 
         // 执行更新操作
         ret = SPI_exec(sql.data, 1); // 更新 1 行

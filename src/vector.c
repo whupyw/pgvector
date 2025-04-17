@@ -1600,7 +1600,7 @@ Datum test_func(PG_FUNCTION_ARGS)
 	// search_k_nearest_neighbors("vectors_index_table", 30, 10, target, 128);
 
 	// 测试构建索引
-	
+
 	PG_RETURN_NULL();
 }
 
@@ -1693,14 +1693,23 @@ Datum test_recall(PG_FUNCTION_ARGS)
 			vec->x[i] = buffer[i];
 		}
 		MyPrintVector(vec);
-		count++;
+
 		bytes_read += n * sizeof(float);
 
 		// 进行查询
+		uint32_t init_id = 2176; // 0-9999
+		uint32_t init_id2 = 3752; // 0-9999
+		uint32_t init_id3 = 2781; // 0-9999
 		const char *table_name = "vectors_index_table";
-		uint32_t init_id = rand() % 10000; // 0-9999
-		uint32_t k = 10;
-		NewVector *target_nbrs = search_k_nearest_neighbors(table_name, init_id, k, vec, 5000);
+		NewVector *init_ids = (NewVector *)palloc(sizeof(NewVector));
+		new_vector_init_with_capacity(init_ids, sizeof(uint32_t), 10);
+		new_vector_push_back(init_ids, &init_id);
+		new_vector_push_back(init_ids, &init_id2);
+		new_vector_push_back(init_ids, &init_id3);
+		// uint32_t init_id = 2176; // 0-9999
+
+		//uint32_t k = 20;
+		NewVector *target_nbrs = new_search_k_nearest_neighbors(table_name, init_ids, k, vec, 10000);
 		char result[1024]; // 足够大的输出缓冲区
 		new_vector_to_string(target_nbrs, result, sizeof(result));
 		elog(INFO, "result:%s", result);
@@ -1708,7 +1717,7 @@ Datum test_recall(PG_FUNCTION_ARGS)
 		// 计算召回率
 		int hit = 0;
 		int32_t *truth_topk = &ids[count * k];
-
+		count++;
 		// 遍历搜索结果，统计有多少在真值集合里
 		for (uint32_t i = 0; i < target_nbrs->size; i++)
 		{
@@ -1738,5 +1747,132 @@ Datum test_recall(PG_FUNCTION_ARGS)
 	fclose(file);
 	fclose(truth_file);
 	// 对比结果 计算召回率
+	PG_RETURN_NULL();
+}
+
+static float my_l2_distance(const float *a, const float *b, int dim)
+{
+	float sum = 0.0f;
+	for (int i = 0; i < dim; i++)
+	{
+		float diff = a[i] - b[i];
+		sum += diff * diff;
+	}
+	return (float)sum;
+}
+
+PG_FUNCTION_INFO_V1(check_dist);
+Datum check_dist(PG_FUNCTION_ARGS)
+{
+	// 参数设置
+	int dim = 128;
+	int num_queries = 100;
+	int base_vector_num = 10000;
+	int top_k = 100;
+
+	const char *query_path = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_query.fvecs";
+	const char *truth_path = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_groundtruth.ivecs";
+	const char *base_path = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_base.fvecs";
+	const char *csv_output_path = "/tmp/true_distances.csv";
+
+	// 打开文件
+	FILE *query_file = fopen(query_path, "rb");
+	FILE *truth_file = fopen(truth_path, "rb");
+	FILE *base_file = fopen(base_path, "rb");
+	FILE *csv_file = fopen(csv_output_path, "w");
+
+	if (!query_file || !truth_file || !base_file || !csv_file)
+		ereport(ERROR, (errmsg("无法打开数据文件")));
+
+	// 分配内存
+	float *query_vectors = malloc(num_queries * dim * sizeof(float));
+	float *base_vectors = malloc(base_vector_num * dim * sizeof(float));
+	int32_t *truth_ids = malloc(num_queries * top_k * sizeof(int32_t));
+	if (!query_vectors || !base_vectors || !truth_ids)
+		ereport(ERROR, (errmsg("内存分配失败")));
+
+	// 读取 query 向量
+	for (int i = 0; i < num_queries; i++)
+	{
+		int vec_dim = 0;
+		fread(&vec_dim, sizeof(int32_t), 1, query_file);
+		if (vec_dim != dim)
+			ereport(ERROR, (errmsg("query 维度不符: %d", vec_dim)));
+		fread(query_vectors + i * dim, sizeof(float), dim, query_file);
+	}
+
+	// 读取 base 向量
+	for (int i = 0; i < base_vector_num; i++)
+	{
+		int vec_dim = 0;
+		fread(&vec_dim, sizeof(int32_t), 1, base_file);
+		if (vec_dim != dim)
+			ereport(ERROR, (errmsg("base 向量维度不符: %d", vec_dim)));
+		fread(base_vectors + i * dim, sizeof(float), dim, base_file);
+	}
+
+	// 读取 ground truth
+	for (int i = 0; i < num_queries; i++)
+	{
+		int count = 0;
+		fread(&count, sizeof(int32_t), 1, truth_file);
+		if (count != top_k)
+			ereport(ERROR, (errmsg("ground truth k != %d: %d", top_k, count)));
+		fread(truth_ids + i * top_k, sizeof(int32_t), top_k, truth_file);
+	}
+
+	// 写入 CSV 标题
+	fprintf(csv_file, "query_id");
+	for (int j = 0; j < top_k; j++)
+	{
+		fprintf(csv_file, ",neighbor_%d_dist", j);
+	}
+	fprintf(csv_file, "\n");
+
+	// 主循环：每个 query 计算 top-k 真值邻居距离
+	for (int q = 0; q < num_queries; q++)
+	{
+		float *query_vec = query_vectors + q * dim;
+
+		// 打印 query 向量
+		char vec_str[2048] = {0};
+		strcat(vec_str, "Query vector: [");
+		for (int d = 0; d < dim; d++)
+		{
+			char buf[32];
+			snprintf(buf, sizeof(buf), "%.3f%s", query_vec[d], (d < dim - 1) ? ", " : "]");
+			strcat(vec_str, buf);
+		}
+		elog(INFO, "Query %d - %s", q, vec_str);
+
+		// 写入 CSV
+		fprintf(csv_file, "%d", q);
+
+		for (int j = 0; j < top_k; j++)
+		{
+			int nbr_id = truth_ids[q * top_k + j];
+			float *nbr_vec = base_vectors + nbr_id * dim;
+			float dist = my_l2_distance(query_vec, nbr_vec, dim);
+			fprintf(csv_file, ",%.4f", dist);
+
+			if (q < 2)
+			{
+				elog(INFO, "  Neighbor %d (id=%d), dist=%.4f", j, nbr_id, dist);
+			}
+		}
+
+		fprintf(csv_file, "\n");
+	}
+
+	// 释放资源
+	fclose(query_file);
+	fclose(base_file);
+	fclose(truth_file);
+	fclose(csv_file);
+	free(query_vectors);
+	free(base_vectors);
+	free(truth_ids);
+
+	elog(INFO, "真值距离计算完毕，CSV 写入: %s", csv_output_path);
 	PG_RETURN_NULL();
 }
