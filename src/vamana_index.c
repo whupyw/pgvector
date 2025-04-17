@@ -442,32 +442,37 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
     // 邻居集大小
     // 候选集
     NeighborPriorityQueue *L_nodes = scratch->best_L_nodes;
-    // 起始点
-    size_t init_id = scratch->entry_point;
+
     // 已访问节点
     size_t num_of_vec = scratch->max_point;
     uint32_t *is_visited = (uint32_t *)calloc(num_of_vec / 32 + 1, sizeof(uint32_t));
     // 已扩展的邻域
     NewVector *expanded_nodes = scratch->expanded_nodes;
     // 2.处理初始节点
-
-    // 从 init_ids 中取出初始节点 ID，计算与查询向量的距离，并将其加入到 best_L_nodes 队列中。
-    if (init_id > scratch->max_point)
-    {
-        elog(ERROR, "init_id is out of range");
-    }
-    set_bit(is_visited, (size_t)init_id); // 将初始节点标记为已访问
-
     // 将初始节点加入候选集
-    float *init_vector = (float *)palloc(sizeof(float) * 128);
-    get_vec_from_compressed_data(compressed_vectors, pivots_data, init_id, init_vector, pq_chunk, 128); // 计算距离
-    float distance = get_distance(init_vector, target_vector, 128);
-    pfree(init_vector); // 计算距离
-    Neighbor nn;
-    nn.id = init_id;
-    nn.distance = distance;
-    nn.expanded = false;
-    priority_queue_insert(L_nodes, nn); // 将初始节点加入候选集
+    for (size_t i = 0; i < scratch->init_ids->size; i++)
+    {
+        // 起始点
+        size_t* init_id_pointer = new_vector_get(scratch->init_ids, i);
+        size_t init_id = *init_id_pointer;
+        // 从 init_ids 中取出初始节点 ID，计算与查询向量的距离，并将其加入到 best_L_nodes 队列中。
+        if (init_id > scratch->max_point)
+        {
+            elog(ERROR, "init_id is out of range");
+        }
+        set_bit(is_visited, (size_t)init_id); // 将初始节点标记为已访问
+
+        float *init_vector = (float *)palloc(sizeof(float) * 128);
+        get_vec_from_compressed_data(compressed_vectors, pivots_data, init_id, init_vector, pq_chunk, 128); // 计算距离
+        float distance = get_distance(init_vector, target_vector, 128);
+        pfree(init_vector); // 计算距离
+        Neighbor nn;
+        nn.id = init_id;
+        nn.distance = distance;
+        nn.expanded = false;
+        priority_queue_insert(L_nodes, nn); // 将初始节点加入候选集
+    }
+
     size_t search_size = 0;
     // 用来存储搜索邻居的结果
     MyVector *id_scratch = (MyVector *)palloc(sizeof(MyVector));
@@ -976,6 +981,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     // 要存储初始点
     // size_t entry_point = calculate_entry(num_points);
     size_t entry_point = 3732;
+    size_t entry_point2 = 7000;
 
     // 遍历列表
     for (i = 0; i < num_points; i++)
@@ -983,6 +989,8 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
 
         Scratch *scratch = (Scratch *)palloc(sizeof(Scratch));
         init_scratch(scratch, num_points, L, entry_point, i);
+        new_vector_push_back(scratch->init_ids, &entry_point);
+        new_vector_push_back(scratch->init_ids, &entry_point2);
         scratch->neighbors = my_neighbors_vectors;
         MyVector *pruned_list = (MyVector *)palloc(sizeof(MyVector));
         vector_init(pruned_list);

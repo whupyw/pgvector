@@ -16,6 +16,7 @@ typedef struct
     // uint32_t *is_visited;                // 已经访问的节点
     NeighborPriorityQueue *best_L_nodes; // 指向 NeighborPriorityQueue
     NewVector *neighbors;
+    NewVector *init_ids;
 } Scratch;
 
 // 初始化 Scratch 结构体的方法
@@ -38,6 +39,10 @@ void init_scratch(Scratch *scratch, size_t vector_capacity, size_t L_Size, size_
 
     scratch->cur_node = cur_node;
     scratch->neighbors = NULL;
+
+    // 初始化 NewVector
+    scratch->init_ids = (NewVector *)palloc(sizeof(NewVector));
+    new_vector_init_with_capacity(scratch->init_ids, sizeof(size_t), 4); // 使用 NewVector 的初始化函数
 }
 
 // 清理 Scratch 结构体占用的内存
@@ -51,7 +56,9 @@ void free_scratch(Scratch *scratch)
         scratch->expanded_nodes = NULL; // 防止悬挂指针
     }
     // pfree(scratch->is_visited);   // 释放 bit_array 内存
-    pfree(scratch->best_L_nodes); // 释放结构体内存
+    pfree(scratch->best_L_nodes);       // 释放结构体内存
+    new_vector_free(scratch->init_ids); // 使用 NewVector 的释放函数
+    pfree(scratch->init_ids);           // 释放结构体内存
 }
 
 #endif // SCRATCH_H
