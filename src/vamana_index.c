@@ -222,7 +222,7 @@ bool new_save_neighbors_to_disk(NewVector *neighbors, const char *table_name)
         appendStringInfo(&sql,
                          "UPDATE %s SET neighbors = ARRAY[%s] WHERE vector_id = %u",
                          table_name, array_string.data, id);
-        //elog(INFO, "Executing query: %s", sql.data);
+        // elog(INFO, "Executing query: %s", sql.data);
 
         // 执行更新操作
         ret = SPI_exec(sql.data, 1); // 更新 1 行
@@ -894,7 +894,7 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
             size_t reserveSize = (size_t)ceil(1.05 * GRAPH_SLACK_FACTOR * R);
             // 已访问列表
             size_t dummy_visited_size = (size_t)ceil(reserveSize / 32);
-            uint32_t *dummy_visited = (uint32_t *)calloc(dummy_visited_size, sizeof(uint32_t));
+            uint32_t *dummy_visited = (uint32_t *)calloc(scratch->max_point / 32, sizeof(uint32_t));
             NewVector *dummy_pool = (NewVector *)palloc(sizeof(NewVector));
             new_vector_init_with_capacity(dummy_pool, sizeof(Neighbor), reserveSize);
 
@@ -907,7 +907,7 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
                     float dist = get_distance_by_id(des_id, cur_node);
                     Neighbor cur_nbr = {cur_node, dist};
                     new_vector_push_back(dummy_pool, &cur_nbr);
-                    // set_bit(dummy_visited, (size_t)cur_node);
+                    set_bit(dummy_visited, (size_t)cur_node);
                 }
             }
             MyVector *new_out_neighbors = (MyVector *)palloc(sizeof(MyVector));
@@ -1056,7 +1056,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
                 {
                     float dist = get_distance_by_id(i, cur_node);
                     new_vector_push_back(dummy_pool, cur_node_pointer);
-                    // set_bit(dummy_visited, (size_t)cur_node);
+                    set_bit(dummy_visited, (size_t)cur_node);
                 }
             }
             float alpha = 1.20000005;

@@ -37,6 +37,7 @@
         "pgstat.h": "c",
         "timestamp.h": "c",
         "relscan.h": "c",
-        "spi.h": "c"
+        "spi.h": "c",
+        "cmath": "c"
     }
 }
