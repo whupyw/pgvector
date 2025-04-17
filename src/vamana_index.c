@@ -25,6 +25,7 @@ const float *static_pivot_data = NULL;
 const uint32_t *static_neighbors = NULL;
 NewVector *static_neighbors_vectors = NULL;
 float *static_vector_data = NULL;
+uint32_t pq_chunk = 16;
 
 // 获取指定位置向量的邻居索引，存入数组中
 void get_neighbors(uint32_t point_index, uint32_t R, uint32_t *neighbors, uint32_t *result_neighbors)
@@ -364,7 +365,7 @@ void get_vec_from_compressed_data(const uint32_t *compressed_data, float *pivots
 
         // 找到查表的位置
         // float *pivot = pivots_data + (chunk * 256 + index) * subvector_dim;
-        //float *pivot = pivots_data + index * dim + chunk * subvector_dim;
+        // float *pivot = pivots_data + index * dim + chunk * subvector_dim;
         float *pivot = pivots_data + (chunk * num_centers + index) * subvector_dim;
 
         // 拷贝这个子向量到vector中对应位置
@@ -400,10 +401,10 @@ float get_distance_by_id(uint32_t vec_a, uint32_t vec_b)
     }
 
     float *vector_a = (float *)palloc(sizeof(float) * 128);
-    get_vec_from_compressed_data(static_compressed_data, static_pivot_data, vec_a, vector_a, 8, 128);
+    get_vec_from_compressed_data(static_compressed_data, static_pivot_data, vec_a, vector_a, pq_chunk, 128);
 
     float *vector_b = (float *)palloc(sizeof(float) * 128);
-    get_vec_from_compressed_data(static_compressed_data, static_pivot_data, vec_b, vector_b, 8, 128);
+    get_vec_from_compressed_data(static_compressed_data, static_pivot_data, vec_b, vector_b, pq_chunk, 128);
     float dist = get_distance(vector_a, vector_b, 128);
     pfree(vector_a);
     pfree(vector_b);
@@ -423,7 +424,7 @@ float get_distance_to_target_by_id(uint32_t vec_id, Vector *vec_b, uint32_t dim)
     }
 
     float *vector_a = (float *)palloc(sizeof(float) * dim);
-    get_vec_from_compressed_data(static_compressed_data, static_pivot_data, vec_id, vector_a, 8, 128);
+    get_vec_from_compressed_data(static_compressed_data, static_pivot_data, vec_id, vector_a, pq_chunk, 128);
 
     float *vector_b = vec_b->x;
     float dist = get_distance(vector_a, vector_b, dim);
@@ -459,7 +460,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
 
     // 将初始节点加入候选集
     float *init_vector = (float *)palloc(sizeof(float) * 128);
-    get_vec_from_compressed_data(compressed_vectors, pivots_data, init_id, init_vector, 8, 128); // 计算距离
+    get_vec_from_compressed_data(compressed_vectors, pivots_data, init_id, init_vector,pq_chunk, 128); // 计算距离
     float distance = get_distance(init_vector, target_vector, 128);
     pfree(init_vector); // 计算距离
     Neighbor nn;
@@ -507,7 +508,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
 
             // 计算该节点和距离
             float *cur_vector = (float *)palloc(sizeof(float) * 128);
-            get_vec_from_compressed_data(compressed_vectors, pivots_data, neighbor_id, cur_vector, 8, 128); // 计算距离
+            get_vec_from_compressed_data(compressed_vectors, pivots_data, neighbor_id, cur_vector, pq_chunk, 128); // 计算距离
             distance = get_distance(cur_vector, target_vector, 128);
             // 存入距离列表
             // neighbours_distances[i] = distance;
@@ -957,7 +958,6 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     NewVector *my_neighbors_vectors = (NewVector *)malloc(sizeof(NewVector));
     generate_random_neighbors_for_vector_empty(my_neighbors_vectors, (size_t)num_points, (size_t)R);
 
-
     // BFS贪心算法
     // 执行搜索，生成候选集
     // 从候选池中移除当前节点自身，避免自连接。
@@ -985,7 +985,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
         MyVector *pruned_list = (MyVector *)palloc(sizeof(MyVector));
         vector_init(pruned_list);
         float *query = (float *)palloc0(sizeof(float) * dim);
-        get_vec_from_compressed_data(compressed_vectors, pivots_data, i, query, 8, dim);
+        get_vec_from_compressed_data(compressed_vectors, pivots_data, i, query, pq_chunk, dim);
 
         search_for_point_and_prune(scratch, pivots_data, compressed_vectors, neighbours, i, L, pruned_list, query, R);
         assert(pruned_list->size > 0);

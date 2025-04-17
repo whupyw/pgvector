@@ -976,7 +976,7 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     unsigned int build_pq_bytes = 0;
     int reorder_data = 0;
     int created_temp_file_for_processed_data = 0;
-    size_t num_pq_chunks = 8;
+    size_t num_pq_chunks = 16;
     double p_val = 1;
 
     time_t start = time(NULL);
