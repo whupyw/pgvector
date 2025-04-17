@@ -30,7 +30,9 @@
 #include "new_vector.h"
 #include <utils/array.h>
 #include "vamana_index.h"
-#include "bit_array.h"
+#include "bit_array.h" 
+#include <time.h>
+#include <stdlib.h>
 /* Vamana图搜索 */
 static List *
 SearchVamanaGraph(Relation index, Datum query, int k)
@@ -237,9 +239,10 @@ bool vamanagettuple(IndexScanDesc scan, ScanDirection dir)
         Vector *target = InitVector(128);
         heaptids = (NewVector *)palloc(sizeof(NewVector));
         const char *table_name = "vectors_index_table";
+        srand(time(NULL)); // 用当前时间作为随机种子
         for (uint32_t i = 0; i < 128; i++)
         {
-            target->x[i] = i % 64;
+            target->x[i] = ((float)rand() / RAND_MAX) * 50.0f; // 生成 [0.0, 100.0)
         }
         uint32_t init_id = calculate_search_entry(10000);
         uint32_t init_id2 = calculate_search_entry(10000);
