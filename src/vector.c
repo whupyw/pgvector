@@ -1697,11 +1697,11 @@ Datum test_recall(PG_FUNCTION_ARGS)
 		bytes_read += n * sizeof(float);
 
 		// 进行查询
-		uint32_t init_id = 2176;  // 0-9999
-		uint32_t init_id2 = 3752; // 0-9999
+		uint32_t init_id5 = 2176;  // 0-9999
+		uint32_t init_id4 = 3752; // 0-9999
 		uint32_t init_id3 = 2781; // 0-9999
-		uint32_t init_id4 = 2707; // 0-9999
-		uint32_t init_id5 = 9843; // 0-9999
+		uint32_t init_id2 = 2707; // 0-9999
+		uint32_t init_id = 9843; // 0-9999
 		const char *table_name = "vectors_index_table";
 		NewVector *init_ids = (NewVector *)palloc(sizeof(NewVector));
 		new_vector_init_with_capacity(init_ids, sizeof(uint32_t), 10);

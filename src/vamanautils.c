@@ -442,7 +442,7 @@ void new_get_vectors(char *index_table_name, NewVector *re_vectors, NewVector *t
 
 void new_get_vectors_and_neighbors(char *index_table_name, NewVector *re_vectors, NewVector *target_vectors)
 {
-    elog(INFO, "new get_vectors_and_neighbors");
+    //elog(INFO, "new get_vectors_and_neighbors");
     // 启动 SPI 上下文
     if (SPI_connect() != SPI_OK_CONNECT)
         elog(ERROR, "SPI_connect failed");
@@ -830,7 +830,7 @@ NewVector *new_search_k_nearest_neighbors(char *index_table_name, NewVector *ini
 
     NewVector *res_vector_ids;
 
-    uint32_t retset_size = 150;
+    uint32_t retset_size = 100;
 
     retset = (NeighborPriorityQueue *)palloc(sizeof(NeighborPriorityQueue));
     init_queue(retset, retset_size);

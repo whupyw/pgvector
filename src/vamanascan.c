@@ -197,6 +197,15 @@ GetScanValue(IndexScanDesc scan)
     return value;
 }
 
+size_t calculate_search_entry(size_t num_points)
+{
+    // 生成一个大范围的随机数 r
+    size_t r = (size_t)rand() * (size_t)RAND_MAX + (size_t)rand();
+
+    // 返回随机索引，确保它在容量范围内
+    return (uint32_t)(r % num_points);
+}
+
 /* 扫描函数 */
 bool vamanagettuple(IndexScanDesc scan, ScanDirection dir)
 {
@@ -204,8 +213,8 @@ bool vamanagettuple(IndexScanDesc scan, ScanDirection dir)
     // MemoryContext oldCtx = MemoryContextSwitchTo(so->tmpCtx);
 
     NewVector *heaptids = NULL;
-    //Datum value;
-    // 初始化返回结果
+    // Datum value;
+    //  初始化返回结果
     if (so->first)
     {
         // 执行搜索函数
@@ -232,9 +241,14 @@ bool vamanagettuple(IndexScanDesc scan, ScanDirection dir)
         {
             target->x[i] = i % 64;
         }
-        uint32_t init_id = 30;
+        uint32_t init_id = calculate_search_entry(10000);
+        uint32_t init_id2 = calculate_search_entry(10000);
+        NewVector *init_ids = (NewVector *)palloc(sizeof(NewVector));
+        new_vector_init_with_capacity(init_ids, sizeof(uint32_t), 2);
+        new_vector_push_back(init_ids, &init_id);
+        new_vector_push_back(init_ids, &init_id2);
         uint32_t k = 10;
-        NewVector *target_nbrs = search_k_nearest_neighbors(table_name, init_id, k, target, target->dim);
+        NewVector *target_nbrs = new_search_k_nearest_neighbors(table_name, init_ids, k, target, 10000);
         const char *origin_table_name = "vectors";
         new_vector_init_with_capacity(heaptids, sizeof(ItemPointer), k + 1);
         get_heaptids_from_table(origin_table_name, target_nbrs, heaptids);

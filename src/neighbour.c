@@ -1,4 +1,5 @@
 #include "neighbour.h"
+#include <assert.h>
 // Function to compare two neighbors based on their distance and id
 int compare_neighbors(const void *a, const void *b)
 {
@@ -46,6 +47,10 @@ void priority_queue_insert(NeighborPriorityQueue *queue, Neighbor nbr)
         }
     }
 
+    // 插入位置越界不允许
+    if (queue->size == queue->capacity && lo == queue->capacity)
+        return;
+
     // Insert the neighbor at position 'lo'
     if (lo < queue->capacity)
     {
@@ -65,6 +70,7 @@ void priority_queue_insert(NeighborPriorityQueue *queue, Neighbor nbr)
 // Get the closest unexpanded neighbor
 Neighbor closest_unexpanded(NeighborPriorityQueue *queue)
 {
+    assert(queue->cur < queue->size);
     queue->data[queue->cur].expanded = true;
     size_t pre = queue->cur;
     while (queue->cur < queue->size && queue->data[queue->cur].expanded)

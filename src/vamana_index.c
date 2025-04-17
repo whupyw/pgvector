@@ -1055,7 +1055,11 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
                 if (!test_bit(dummy_visited, (size_t)cur_node) && cur_node != i)
                 {
                     float dist = get_distance_by_id(i, cur_node);
-                    new_vector_push_back(dummy_pool, cur_node_pointer);
+                    Neighbor nn;
+                    nn.id = cur_node;
+                    nn.distance = dist;
+                    nn.expanded = false;
+                    new_vector_push_back(dummy_pool, &nn);
                     set_bit(dummy_visited, (size_t)cur_node);
                 }
             }
