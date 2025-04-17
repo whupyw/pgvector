@@ -264,7 +264,7 @@ void kmeanspp_selecting_pivots(float *data, size_t num_points, size_t dim, float
             if (picked[j] == tmp_pivot)
             {
                 max_try--;
-                if (max_try < 0)
+                if (max_try <= 0)
                 {
                     elog(ERROR, "ERROR: k-means++ failed to select unique pivots, fallback to random selection");
                     pfree(picked);
@@ -655,6 +655,7 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
     elog(LOG, "Generating PQ pivots");
     /* Zero-mean normalization */
     float *centroid = (float *)palloc0(dim * sizeof(float));
+    make_zero_mean = false;
     if (make_zero_mean)
     {
         for (size_t d = 0; d < dim; d++)
@@ -671,7 +672,7 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
             for (size_t p = 0; p < num_train; p++)
             {
                 // 不用归一化了
-                // train_data_copy[p * dim + d] -= centroid[d];
+                train_data_copy[p * dim + d] -= centroid[d];
             }
         }
     }
@@ -969,7 +970,7 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
     int reorder_data = 0;
     int created_temp_file_for_processed_data = 0;
     size_t num_pq_chunks = 8;
-    double p_val = 0.1;
+    double p_val = 1;
 
     time_t start = time(NULL);
     time_t end = time(NULL);
