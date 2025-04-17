@@ -575,14 +575,7 @@ void gen_random_slice(const float *inputdata, size_t npts, size_t ndims, double 
     if (p_val > 1.0)
         p_val = 1.0;
 
-    MemoryContext oldContext;
-    MemoryContext ctx;
-
-    // 创建一个专属的内存上下文
-    ctx = AllocSetContextCreate(CurrentMemoryContext, "SampleDataContext", ALLOCSET_DEFAULT_SIZES);
-    oldContext = MemoryContextSwitchTo(ctx);
-
-    float *temp_data = (float *)MemoryContextAlloc(ctx, npts * ndims * sizeof(float));
+    float *temp_data = (float *)palloc(npts * ndims * sizeof(float));
     if (!temp_data)
     {
         elog(ERROR, "Memory allocation failed for sampled data");
@@ -604,7 +597,7 @@ void gen_random_slice(const float *inputdata, size_t npts, size_t ndims, double 
     }
 
     // 精确调整内存分配
-    *sampled_data = (float *)MemoryContextAlloc(ctx, count * ndims * sizeof(float));
+    *sampled_data = (float *)palloc(count * ndims * sizeof(float));
     if (!*sampled_data)
     {
         elog(ERROR, "Memory allocation failed for final sampled data");
@@ -911,6 +904,7 @@ void generate_quantized_data(
             generate_pq_pivots(sampled_data, slice_size, (uint32_t)ndims,
                                NUM_PQ_CENTROIDS, (uint32_t)num_pq_chunks,
                                NUM_KMEANS_REPS_PQ, pq_pivots_path, make_zero_mean);
+            pfree(sampled_data);
         }
         else
         {
@@ -1088,7 +1082,7 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
         return 1;
     }
     elog(INFO, "Memory usage: %ld kB\n", usage.ru_maxrss);
-    //create_disk_laylout(table_name, neighbor_pointer);
+    // create_disk_laylout(table_name, neighbor_pointer);
     pfree(pq_pivots_path);
     pfree(pq_compressed_vectors_path);
     free(buildParams);
