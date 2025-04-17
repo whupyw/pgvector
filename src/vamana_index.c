@@ -1041,8 +1041,8 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
         NewVector *cur_neighbors = NULL;
         // cur_neighbors = new_vector_get(static_neighbors_vectors, i);
         cur_neighbors = new_vector_get(my_neighbors_vectors, i);
-        Scratch *scratch = (Scratch *)palloc(sizeof(Scratch));
-        init_scratch(scratch, num_points, L, entry_point, i);
+        // Scratch *scratch = (Scratch *)palloc(sizeof(Scratch));
+        // init_scratch(scratch, num_points, L, entry_point, i);
         if (cur_neighbors->size > R)
         {
             // 已访问列表
@@ -1069,7 +1069,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
             }
             float alpha = 1.20000005;
             // prune_neighbors(i, scratch, dummy_pool, L, 1.0, R);
-            new_prune_neighbors(i, dummy_pool, new_out_neighbors, L, alpha, R, scratch);
+            new_prune_neighbors(i, dummy_pool, new_out_neighbors, L, alpha, R, NULL);
             // set_neighbours(i, new_out_neighbors);
             new_set_neighbours(i, new_out_neighbors, my_neighbors_vectors);
             if (dummy_pool)
@@ -1080,8 +1080,8 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
                 vector_free(new_out_neighbors);
             pfree(new_out_neighbors);
         }
-        free_scratch(scratch);
-        pfree(scratch);
+        // free_scratch(scratch);
+        // pfree(scratch);
         // prune_neighbors();
     }
     // 存储邻居
