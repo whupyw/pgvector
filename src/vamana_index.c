@@ -460,7 +460,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
 
     // 将初始节点加入候选集
     float *init_vector = (float *)palloc(sizeof(float) * 128);
-    get_vec_from_compressed_data(compressed_vectors, pivots_data, init_id, init_vector,pq_chunk, 128); // 计算距离
+    get_vec_from_compressed_data(compressed_vectors, pivots_data, init_id, init_vector, pq_chunk, 128); // 计算距离
     float distance = get_distance(init_vector, target_vector, 128);
     pfree(init_vector); // 计算距离
     Neighbor nn;
@@ -468,7 +468,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
     nn.distance = distance;
     nn.expanded = false;
     priority_queue_insert(L_nodes, nn); // 将初始节点加入候选集
-
+    size_t search_size = 0;
     // 用来存储搜索邻居的结果
     MyVector *id_scratch = (MyVector *)palloc(sizeof(MyVector));
     vector_init_with_capacity(id_scratch, 200);
@@ -478,6 +478,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
     // 3.迭代过程 图搜索过程 获取候选集中未访问的节点
     while (has_unexpanded_node(L_nodes))
     {
+        search_size++;
         // 获取当前未被扩展的第一个节点
         Neighbor cur_node = closest_unexpanded(L_nodes);
         new_vector_push_back(expanded_nodes, &cur_node); // 将节点加入已扩展列表
@@ -530,6 +531,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
             // elog(INFO, "neighbor_id: %u, distance: %f", neighbor_id, distance);
         }
     }
+    elog(INFO, "search_size: %ld", search_size);
     // print distance
     // for (size_t i = 0; i < L_nodes->size; i++)
     // {

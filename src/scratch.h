@@ -12,8 +12,8 @@ typedef struct
     size_t entry_point;
     size_t max_point;
     uint32_t cur_node;
-    NewVector *expanded_nodes;           // 已经扩展的节点
-    //uint32_t *is_visited;                // 已经访问的节点
+    NewVector *expanded_nodes; // 已经扩展的节点
+    // uint32_t *is_visited;                // 已经访问的节点
     NeighborPriorityQueue *best_L_nodes; // 指向 NeighborPriorityQueue
     NewVector *neighbors;
 } Scratch;
@@ -26,11 +26,12 @@ void init_scratch(Scratch *scratch, size_t vector_capacity, size_t L_Size, size_
     new_vector_init_with_capacity(scratch->expanded_nodes, sizeof(Neighbor), 70); // 使用 NewVector 的初始化函数
 
     // 初始化 bit_array
-    //scratch->is_visited = (uint32_t *)palloc0(vector_capacity); // 使用 palloc0 确保初始化为0
+    // scratch->is_visited = (uint32_t *)palloc0(vector_capacity); // 使用 palloc0 确保初始化为0
 
     // 初始化 NeighborPriorityQueue
     scratch->best_L_nodes = (NeighborPriorityQueue *)palloc(sizeof(NeighborPriorityQueue));
-    init_queue(scratch->best_L_nodes, L_Size); // 使用 NeighborPriorityQueue 的初始化函数
+    size_t new_L_size = 3 * L_Size;
+    init_queue(scratch->best_L_nodes, new_L_size); // 使用 NeighborPriorityQueue 的初始化函数
 
     scratch->entry_point = entry_point;
     scratch->max_point = vector_capacity;
@@ -49,7 +50,7 @@ void free_scratch(Scratch *scratch)
         pfree(scratch->expanded_nodes); // 释放 NewVector 内存
         scratch->expanded_nodes = NULL; // 防止悬挂指针
     }
-    //pfree(scratch->is_visited);   // 释放 bit_array 内存
+    // pfree(scratch->is_visited);   // 释放 bit_array 内存
     pfree(scratch->best_L_nodes); // 释放结构体内存
 }
 
