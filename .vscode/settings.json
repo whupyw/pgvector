@@ -38,6 +38,7 @@
         "timestamp.h": "c",
         "relscan.h": "c",
         "spi.h": "c",
-        "cmath": "c"
+        "cmath": "c",
+        "sampling.h": "c"
     }
 }

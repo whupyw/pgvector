@@ -378,27 +378,27 @@ float get_distance(float *vector1, float *vector2, size_t dim)
 
 void get_vec_from_compressed_data(const uint32_t *compressed_data, float *pivots_data, uint32_t location, float *vector, uint32_t num_pq_chunks, uint32_t dim)
 {
-    // uint32_t *code = &compressed_data[location * num_pq_chunks];
-    // uint32_t subvector_dim = dim / num_pq_chunks;
-    // uint32_t num_centers = 256;
+    uint32_t *code = &compressed_data[location * num_pq_chunks];
+    uint32_t subvector_dim = dim / num_pq_chunks;
+    uint32_t num_centers = 256;
 
-    // // 解码每个chunk
-    // for (uint32_t chunk = 0; chunk < num_pq_chunks; ++chunk)
-    // {
-    //     // 提取每个chunk对应的索引
-    //     // 索引代表目标聚类中心向量的起始位置
-    //     uint32_t index = *(code + chunk);
+    // 解码每个chunk
+    for (uint32_t chunk = 0; chunk < num_pq_chunks; ++chunk)
+    {
+        // 提取每个chunk对应的索引
+        // 索引代表目标聚类中心向量的起始位置
+        uint32_t index = *(code + chunk);
 
-    //     // 找到查表的位置
-    //     // float *pivot = pivots_data + (chunk * 256 + index) * subvector_dim;
-    //     // float *pivot = pivots_data + index * dim + chunk * subvector_dim;
-    //     float *pivot = pivots_data + (chunk * num_centers + index) * subvector_dim;
+        // 找到查表的位置
+        // float *pivot = pivots_data + (chunk * 256 + index) * subvector_dim;
+        // float *pivot = pivots_data + index * dim + chunk * subvector_dim;
+        float *pivot = pivots_data + (chunk * num_centers + index) * subvector_dim;
 
-    //     // 拷贝这个子向量到vector中对应位置
-    //     memcpy(vector + chunk * subvector_dim, pivot, sizeof(float) * subvector_dim);
-    // }
-    float *vec2 = static_base_vector + location * dim;
-    memcpy(vector, vec2, sizeof(float) * dim);
+        // 拷贝这个子向量到vector中对应位置
+        memcpy(vector + chunk * subvector_dim, pivot, sizeof(float) * subvector_dim);
+    }
+    // float *vec2 = static_base_vector + location * dim;
+    // memcpy(vector, vec2, sizeof(float) * dim);
 }
 
 float vector_L2_distance(int dim, float *ax, float *bx)
@@ -995,19 +995,19 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     NewVector *my_neighbors_vectors = (NewVector *)malloc(sizeof(NewVector));
     generate_random_neighbors_for_vector_empty(my_neighbors_vectors, (size_t)num_points, (size_t)R);
 
-    // 加载原始向量
-    size_t base_vector_num = 10000;
-    size_t base_vector_dim = 128;
-    float *base_vectors = palloc(base_vector_num * base_vector_dim * sizeof(float));
-    if (!base_vectors)
-    {
-        fprintf(stderr, "内存分配失败\n");
-        return 1;
-    }
+    // // 加载原始向量
+    // size_t base_vector_num = 10000;
+    // size_t base_vector_dim = 128;
+    // float *base_vectors = palloc(base_vector_num * base_vector_dim * sizeof(float));
+    // if (!base_vectors)
+    // {
+    //     fprintf(stderr, "内存分配失败\n");
+    //     return 1;
+    // }
 
-    const char *base_path = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_base.fvecs";
-    load_base_vectors(base_path, base_vectors, base_vector_num, base_vector_dim);
-    static_base_vector = base_vectors;
+    // const char *base_path = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_base.fvecs";
+    // load_base_vectors(base_path, base_vectors, base_vector_num, base_vector_dim);
+    // static_base_vector = base_vectors;
 
     // BFS贪心算法
     // 执行搜索，生成候选集

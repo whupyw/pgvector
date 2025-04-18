@@ -442,8 +442,8 @@ void new_get_vectors(char *index_table_name, NewVector *re_vectors, NewVector *t
 
 void new_get_vectors_and_neighbors(char *index_table_name, NewVector *re_vectors, NewVector *target_vectors)
 {
-    //elog(INFO, "new get_vectors_and_neighbors");
-    // 启动 SPI 上下文
+    // elog(INFO, "new get_vectors_and_neighbors");
+    //  启动 SPI 上下文
     if (SPI_connect() != SPI_OK_CONNECT)
         elog(ERROR, "SPI_connect failed");
 
@@ -730,6 +730,7 @@ NewVector *search_k_nearest_neighbors(char *index_table_name, uint32_t init_id,
         // 将full_retset的距离替换为真实距离
 
         // 截断一部分节点
+        new_vector_sort(full_retset, compare_neighbors);
         if (full_retset->size > k * FULL_PRECISION_REORDER_MULTIPLIER)
         {
             new_vector_resize(full_retset, k * FULL_PRECISION_REORDER_MULTIPLIER);
@@ -890,7 +891,245 @@ NewVector *new_search_k_nearest_neighbors(char *index_table_name, NewVector *ini
             {
                 // frontier.push_back(nbr.id);
                 new_vector_push_back(frontier, &temp_id);
-                //elog(INFO, "frontier: %u", temp_id);
+                // elog(INFO, "frontier: %u", temp_id);
+            }
+        }
+
+        if (frontier->size != 0)
+        {
+            for (uint32_t i = 0; i < frontier->size; i++)
+            {
+                // 准备加载frontier中的节点的邻居
+                uint32_t *current_id_pointer = new_vector_get(frontier, i);
+                // DEBUG 这里会不会有内存分配的问题
+                new_vector_push_back(frontier_nhoods_req, current_id_pointer);
+                num_ios++;
+            }
+        }
+
+        // 加载frontier中的节点的邻居
+        // select vector and neighbors from disk
+        new_get_vectors_and_neighbors(index_table_name, frontier_nhoods, frontier_nhoods_req);
+        total_visit_size += frontier_nhoods_req->size;
+        new_vector_clear(frontier_nhoods_req);
+        // new_vector_append(vector_caches, frontier_nhoods);
+
+        // 处理缓存中的邻居
+        // 拿出一个节点
+        // 计算与查询向量的PQ距离
+        // 将当前节点加入full_retset
+        // 拿出这个节点的邻居
+        // 计算与查询向量的PQ距离
+        // 加入best_l_node
+
+        // 循环frontier_nhoods
+        // 获取邻居数量和坐标
+        // 计算当前节点与查询向量的距离
+        // 处理邻居节点
+        for (uint32_t i = 0; i < frontier_nhoods->size; i++)
+        {
+            VectorCache *item = (VectorCache *)new_vector_get(frontier_nhoods, i);
+            // uint32_t id = item->vector_id;
+            uint32_t n_count = item->neighbor_count;
+            Vector *item_vec = item->vector;
+            float tmp_distance = vector_L2_distance(target->dim, target->x, item_vec->x);
+            Neighbor nbr;
+            nbr.id = item->vector_id;
+            nbr.distance = tmp_distance;
+            new_vector_push_back(full_retset, &nbr);
+
+            // 检查邻居
+            for (uint32_t m = 0; m < n_count; m++)
+            {
+                uint32_t id = item->neighbors[m];
+                if (!test_bit(is_visited, (size_t)id))
+                {
+                    // 如果没访问过
+                    // 计算距离 应该是计算与查询向量的距离
+                    float distance = get_distance_to_target_by_id(id, target, target->dim);
+                    Neighbor nn;
+                    nn.id = id;
+                    nn.distance = distance;
+                    nn.expanded = false;
+                    set_bit(is_visited, (size_t)id);
+                    // 将邻居加入候选集
+                    priority_queue_insert(retset, nn);
+                }
+            }
+        }
+        new_vector_clear(frontier_nhoods);
+    }
+    elog(INFO, "total_visit_size: %ld", total_visit_size);
+    // 排序full_retset
+    bool use_full_sort = true;
+    new_vector_sort(full_retset, compare_neighbors);
+    if (use_full_sort)
+    {
+        // 隐式重排序
+        // 将full_retset的距离替换为真实距离
+
+        // 截断一部分节点
+        if (full_retset->size > k * FULL_PRECISION_REORDER_MULTIPLIER)
+        {
+            new_vector_resize(full_retset, k * FULL_PRECISION_REORDER_MULTIPLIER);
+        }
+
+        // kv_table *my_kv_table = create_kv_table();
+        new_vector_clear(frontier_nhoods);
+        new_vector_clear(frontier_nhoods_req);
+
+        for (size_t i = 0; i < full_retset->size; i++)
+        {
+            // 判断哪些在内存哪些不在
+            // 先全部从磁盘中获取
+            uint32_t n_id = ((Neighbor *)new_vector_get(full_retset, i))->id;
+            // elog(INFO, "isert_id: %d", n_id);
+            //  int ret = kv_insert(my_kv_table, n_id, i);
+            //  if (ret == 0)
+            //  {
+            //      elog(ERROR, "kv_insert failed");
+            //  }
+            new_vector_push_back(frontier_nhoods_req, &n_id);
+        }
+
+        new_get_vectors(index_table_name, frontier_nhoods, frontier_nhoods_req);
+
+        if (frontier_nhoods->size != full_retset->size)
+        {
+            elog(ERROR, "frontier_nhoods->size != full_retset->size");
+        }
+
+        for (size_t i = 0; i < full_retset->size; i++)
+        {
+            VectorCache *cur = new_vector_get(frontier_nhoods, i);
+            // elog(INFO, "isert_id: %d", cur->vector_id);
+            float true_dist = vector_L2_distance(target->dim, target->x, cur->vector->x);
+            Neighbor *nbr = (Neighbor *)new_vector_get(full_retset, i);
+            nbr->distance = true_dist;
+        }
+    }
+
+    new_vector_sort(full_retset, compare_neighbors);
+
+    for (uint32_t i = 0; i < k && i < full_retset->size; i++)
+    {
+        Neighbor *nbr = (Neighbor *)new_vector_get(full_retset, i);
+        // elog(INFO, "id: %d, distance: %f", nbr->id, nbr->distance);
+        uint32_t nbr_id = nbr->id;
+        float dist = nbr->distance;
+        elog(INFO, "id: %d, distance: %f", nbr_id, dist);
+        new_vector_push_back(res_vector_ids, &nbr_id);
+    }
+
+    free(is_visited);
+    new_vector_free(frontier);
+    new_vector_free(frontier_nhoods);
+    new_vector_free(frontier_nhoods_req);
+    new_vector_free(full_retset);
+    // new_vector_free(vector_caches);
+    // pfree(vector_caches);
+    free_queue(retset);
+    pfree(frontier);
+    pfree(frontier_nhoods);
+    pfree(frontier_nhoods_req);
+    pfree(retset);
+    pfree(full_retset);
+
+    return res_vector_ids;
+}
+
+NewVector *enhanced_search_k_nearest_neighbors(char *index_table_name, NewVector *init_ids,
+                                               int k, Vector *target, uint32_t vector_num)
+{
+    // 要考虑的点，邻居肯定不是全加载
+    // （可选） 预先加载三跳以内的向量和邻居
+
+    // 加载PQ查表和压缩向量
+    // 选择起点 就是建索引的点
+
+    // 初始化数据结构
+    // visited = new bool[vector_num];
+    // 优先队列
+    // 一个存储Neighbor的全部候选节点
+    size_t total_visit_size = 0;
+
+    uint32_t io_limit = 100000;
+    uint32_t num_ios = 0;
+    uint32_t beam_width = 35;
+
+    NeighborPriorityQueue *retset;
+    uint32_t *is_visited;
+    NewVector *full_retset;
+    NewVector *frontier;
+    // 存储准备查询的节点
+    NewVector *frontier_nhoods;
+    NewVector *frontier_nhoods_req;
+    // NewVector *vector_caches;
+    //  缓存机制
+
+    NewVector *res_vector_ids;
+
+    uint32_t retset_size = 90;
+
+    retset = (NeighborPriorityQueue *)palloc(sizeof(NeighborPriorityQueue));
+    init_queue(retset, retset_size);
+    is_visited = (uint32_t *)calloc(vector_num / 32 + 1, sizeof(uint32_t));
+    full_retset = (NewVector *)palloc(sizeof(NewVector));
+    new_vector_init(full_retset, sizeof(Neighbor));
+    frontier = (NewVector *)palloc(sizeof(NewVector));
+    new_vector_init_with_capacity(frontier, sizeof(uint32_t), 2 * beam_width);
+
+    frontier_nhoods_req = (NewVector *)palloc(sizeof(NewVector));
+    new_vector_init_with_capacity(frontier_nhoods_req, sizeof(uint32_t), 2 * beam_width);
+
+    frontier_nhoods = (NewVector *)palloc(sizeof(NewVector));
+    new_vector_init_with_capacity(frontier_nhoods, sizeof(VectorCache), 2 * beam_width);
+
+    res_vector_ids = (NewVector *)palloc(sizeof(NewVector));
+    new_vector_init_with_capacity(res_vector_ids, sizeof(uint32_t), k + 1);
+    // vector_caches = (NewVector *)palloc(sizeof(NewVector));
+    // new_vector_init_with_capacity(vector_caches, sizeof(VectorCache), 3 * beam_width);
+
+    // 获取初始节点的id和dist 加入候选集
+    for (size_t i = 0; i < init_ids->size; i++)
+    {
+        uint32_t *init_id_pointer = new_vector_get(init_ids, i);
+        uint32_t init_id = *init_id_pointer;
+        Vector *init_vec = InitVector(target->dim);
+        get_vector_in_database("vectors_index_table", init_id, init_vec);
+        float dist = vector_L2_distance(target->dim, target->x, init_vec->x);
+        Neighbor init_node;
+        init_node.id = init_id;
+        init_node.distance = dist;
+        priority_queue_insert(retset, init_node);
+        set_bit(is_visited, (size_t)init_id);
+    }
+
+    // 先不用缓存
+    while (has_unexpanded_node(retset) && num_ios < io_limit)
+    {
+        // new_beam
+        uint32_t num_seen = 0;
+        new_vector_clear(frontier);
+        // frontier->size = 0;
+        new_vector_clear(frontier_nhoods_req);
+        new_vector_clear(frontier_nhoods);
+        while (has_unexpanded_node(retset) && frontier->size < beam_width && num_seen < beam_width)
+        {
+            Neighbor nbr = closest_unexpanded(retset);
+            num_seen++;
+            uint32_t temp_id = nbr.id;
+            // 判断该节点的邻居是否已经被缓存
+            // 是 直接使用缓存的邻居数据
+            // 否 加入frontier 准备缓存
+            if (false)
+            {
+            }
+            else
+            {
+                // frontier.push_back(nbr.id);
+                new_vector_push_back(frontier, &temp_id);
+                // elog(INFO, "frontier: %u", temp_id);
             }
         }
 

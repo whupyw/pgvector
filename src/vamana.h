@@ -258,4 +258,5 @@ FmgrInfo *VamanaOptionalProcInfo(Relation index, uint16 procnum);
 const VamanaTypeInfo *VamanaGetTypeInfo(Relation index);
 void MyPrintVector(Vector *vector);
 void new_vector_to_string(NewVector *vec, char *out, size_t out_size);
+size_t calculate_search_entry(size_t num_points);
 #endif /* VAMANA_H */

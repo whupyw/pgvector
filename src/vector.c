@@ -1699,7 +1699,7 @@ Datum test_recall(PG_FUNCTION_ARGS)
 
 		// 进行查询
 
-		uint32_t init_id1 = (uint32_t)ids[count * 10]; // 0-9999
+		uint32_t init_id1 = calculate_search_entry(10000);
 		const char *table_name = "vectors_index_table";
 		NewVector *init_ids = (NewVector *)palloc(sizeof(NewVector));
 		new_vector_init_with_capacity(init_ids, sizeof(uint32_t), 10);
