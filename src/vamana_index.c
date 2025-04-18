@@ -26,6 +26,7 @@ const uint32_t *static_neighbors = NULL;
 NewVector *static_neighbors_vectors = NULL;
 float *static_vector_data = NULL;
 uint32_t pq_chunk = 16;
+float *static_base_vector = NULL;
 
 // 获取指定位置向量的邻居索引，存入数组中
 void get_neighbors(uint32_t point_index, uint32_t R, uint32_t *neighbors, uint32_t *result_neighbors)
@@ -42,6 +43,31 @@ void get_neighbors(uint32_t point_index, uint32_t R, uint32_t *neighbors, uint32
     {
         result_neighbors[i] = neighbors[point_index * R + i];
     }
+}
+
+void load_base_vectors(const char *path, float *vectors, int count, int dim)
+{
+    FILE *file = fopen(path, "rb");
+    if (!file)
+    {
+        fprintf(stderr, "无法打开文件: %s\n", path);
+        exit(1);
+    }
+
+    for (int i = 0; i < count; i++)
+    {
+        int vec_dim = 0;
+        fread(&vec_dim, sizeof(int32_t), 1, file);
+        if (vec_dim != dim)
+        {
+            fprintf(stderr, "向量维度不符: %d (期望 %d)\n", vec_dim, dim);
+            fclose(file);
+            exit(1);
+        }
+        fread(vectors + i * dim, sizeof(float), dim, file);
+    }
+
+    fclose(file);
 }
 
 void get_neighbors_pointer(uint32_t point_index, uint32_t R, uint32_t *neighbors, uint32_t **result_neighbors)
@@ -352,25 +378,27 @@ float get_distance(float *vector1, float *vector2, size_t dim)
 
 void get_vec_from_compressed_data(const uint32_t *compressed_data, float *pivots_data, uint32_t location, float *vector, uint32_t num_pq_chunks, uint32_t dim)
 {
-    uint32_t *code = &compressed_data[location * num_pq_chunks];
-    uint32_t subvector_dim = dim / num_pq_chunks;
-    uint32_t num_centers = 256;
+    // uint32_t *code = &compressed_data[location * num_pq_chunks];
+    // uint32_t subvector_dim = dim / num_pq_chunks;
+    // uint32_t num_centers = 256;
 
-    // 解码每个chunk
-    for (uint32_t chunk = 0; chunk < num_pq_chunks; ++chunk)
-    {
-        // 提取每个chunk对应的索引
-        // 索引代表目标聚类中心向量的起始位置
-        uint32_t index = *(code + chunk);
+    // // 解码每个chunk
+    // for (uint32_t chunk = 0; chunk < num_pq_chunks; ++chunk)
+    // {
+    //     // 提取每个chunk对应的索引
+    //     // 索引代表目标聚类中心向量的起始位置
+    //     uint32_t index = *(code + chunk);
 
-        // 找到查表的位置
-        // float *pivot = pivots_data + (chunk * 256 + index) * subvector_dim;
-        // float *pivot = pivots_data + index * dim + chunk * subvector_dim;
-        float *pivot = pivots_data + (chunk * num_centers + index) * subvector_dim;
+    //     // 找到查表的位置
+    //     // float *pivot = pivots_data + (chunk * 256 + index) * subvector_dim;
+    //     // float *pivot = pivots_data + index * dim + chunk * subvector_dim;
+    //     float *pivot = pivots_data + (chunk * num_centers + index) * subvector_dim;
 
-        // 拷贝这个子向量到vector中对应位置
-        memcpy(vector + chunk * subvector_dim, pivot, sizeof(float) * subvector_dim);
-    }
+    //     // 拷贝这个子向量到vector中对应位置
+    //     memcpy(vector + chunk * subvector_dim, pivot, sizeof(float) * subvector_dim);
+    // }
+    float *vec2 = static_base_vector + location * dim;
+    memcpy(vector, vec2, sizeof(float) * dim);
 }
 
 float vector_L2_distance(int dim, float *ax, float *bx)
@@ -453,7 +481,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
     for (size_t i = 0; i < scratch->init_ids->size; i++)
     {
         // 起始点
-        size_t* init_id_pointer = new_vector_get(scratch->init_ids, i);
+        size_t *init_id_pointer = new_vector_get(scratch->init_ids, i);
         size_t init_id = *init_id_pointer;
         // 从 init_ids 中取出初始节点 ID，计算与查询向量的距离，并将其加入到 best_L_nodes 队列中。
         if (init_id > scratch->max_point)
@@ -491,6 +519,8 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
         // 获取邻居
         // NewVector *cur_node_neighbours = new_vector_get(static_neighbors_vectors, cur_node.id);
         NewVector *cur_node_neighbours = new_vector_get(scratch->neighbors, cur_node.id);
+        vector_clear(id_scratch);
+        vector_clear(dist_scratch);
 
         // 看看邻居是否在已访问列表中
         for (uint32_t i = 0; i < cur_node_neighbours->size; i++)
@@ -536,7 +566,7 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
             // elog(INFO, "neighbor_id: %u, distance: %f", neighbor_id, distance);
         }
     }
-    elog(INFO, "search_size: %ld", search_size);
+    elog(LOG, "search_size: %ld", search_size);
     // print distance
     // for (size_t i = 0; i < L_nodes->size; i++)
     // {
@@ -965,6 +995,20 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     NewVector *my_neighbors_vectors = (NewVector *)malloc(sizeof(NewVector));
     generate_random_neighbors_for_vector_empty(my_neighbors_vectors, (size_t)num_points, (size_t)R);
 
+    // 加载原始向量
+    size_t base_vector_num = 10000;
+    size_t base_vector_dim = 128;
+    float *base_vectors = palloc(base_vector_num * base_vector_dim * sizeof(float));
+    if (!base_vectors)
+    {
+        fprintf(stderr, "内存分配失败\n");
+        return 1;
+    }
+
+    const char *base_path = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_base.fvecs";
+    load_base_vectors(base_path, base_vectors, base_vector_num, base_vector_dim);
+    static_base_vector = base_vectors;
+
     // BFS贪心算法
     // 执行搜索，生成候选集
     // 从候选池中移除当前节点自身，避免自连接。
@@ -990,7 +1034,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
         Scratch *scratch = (Scratch *)palloc(sizeof(Scratch));
         init_scratch(scratch, num_points, L, entry_point, i);
         new_vector_push_back(scratch->init_ids, &entry_point);
-        new_vector_push_back(scratch->init_ids, &entry_point2);
+        // new_vector_push_back(scratch->init_ids, &entry_point2);
         scratch->neighbors = my_neighbors_vectors;
         MyVector *pruned_list = (MyVector *)palloc(sizeof(MyVector));
         vector_init(pruned_list);
