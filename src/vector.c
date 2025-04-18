@@ -1609,6 +1609,7 @@ Datum test_recall(PG_FUNCTION_ARGS)
 {
 	// 加载真值集
 	File *truth_file;
+	// uint32_t my_init_ids[100] = {};
 	const char *truthfilepath = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_groundtruth.ivecs";
 	if ((truth_file = fopen(truthfilepath, "rb")) == NULL)
 		ereport(ERROR,
@@ -1698,13 +1699,11 @@ Datum test_recall(PG_FUNCTION_ARGS)
 
 		// 进行查询
 
-		uint32_t init_id1 = 2176; // 0-9999
-		uint32_t init_id2 = 8082; // 0-9999
+		uint32_t init_id1 = (uint32_t)ids[count * 10]; // 0-9999
 		const char *table_name = "vectors_index_table";
 		NewVector *init_ids = (NewVector *)palloc(sizeof(NewVector));
 		new_vector_init_with_capacity(init_ids, sizeof(uint32_t), 10);
 		new_vector_push_back(init_ids, &init_id1);
-		new_vector_push_back(init_ids, &init_id2);
 		// new_vector_push_back(init_ids, &init_id2);
 		// new_vector_push_back(init_ids, &init_id3);
 		// new_vector_push_back(init_ids, &init_id4);
@@ -1720,7 +1719,7 @@ Datum test_recall(PG_FUNCTION_ARGS)
 		// 计算召回率
 		int hit = 0;
 		int32_t *truth_topk = &ids[count * k];
-		count++;
+
 		// 遍历搜索结果，统计有多少在真值集合里
 		for (uint32_t i = 0; i < target_nbrs->size; i++)
 		{
@@ -1738,6 +1737,7 @@ Datum test_recall(PG_FUNCTION_ARGS)
 		// 本次查询的召回率
 		float recall = (float)hit / (float)k;
 		elog(INFO, "Query %d recall: %.2f", count, recall);
+		count++;
 		recall_sum += recall;
 	}
 

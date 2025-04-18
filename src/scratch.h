@@ -31,8 +31,7 @@ void init_scratch(Scratch *scratch, size_t vector_capacity, size_t L_Size, size_
 
     // 初始化 NeighborPriorityQueue
     scratch->best_L_nodes = (NeighborPriorityQueue *)palloc(sizeof(NeighborPriorityQueue));
-    size_t new_L_size = 3 * L_Size;
-    init_queue(scratch->best_L_nodes, new_L_size); // 使用 NeighborPriorityQueue 的初始化函数
+    init_queue(scratch->best_L_nodes, L_Size); // 使用 NeighborPriorityQueue 的初始化函数
 
     scratch->entry_point = entry_point;
     scratch->max_point = vector_capacity;

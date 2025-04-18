@@ -1140,14 +1140,14 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     }
     // 存储邻居
     new_save_neighbors_to_disk(my_neighbors_vectors, "vectors_index_table");
-
-    // for (size_t i = 0; i < my_neighbors_vectors->size; i++)
-    // {
-    //     NewVector *cur_neighbors = new_vector_get(my_neighbors_vectors, i);
-    //     char *msg = vector_to_string(cur_neighbors);
-    //     elog(INFO, "node:%d,neighbours:%d,neighbor:%s", i, cur_neighbors->size, msg);
-    //     pfree(msg);
-    // }
+    // pfree(base_vectors);
+    //  for (size_t i = 0; i < my_neighbors_vectors->size; i++)
+    //  {
+    //      NewVector *cur_neighbors = new_vector_get(my_neighbors_vectors, i);
+    //      char *msg = vector_to_string(cur_neighbors);
+    //      elog(INFO, "node:%d,neighbours:%d,neighbor:%s", i, cur_neighbors->size, msg);
+    //      pfree(msg);
+    //  }
     elog(INFO, "Linking completed.");
 }
 

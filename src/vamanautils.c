@@ -816,7 +816,7 @@ NewVector *new_search_k_nearest_neighbors(char *index_table_name, NewVector *ini
 
     uint32_t io_limit = 100000;
     uint32_t num_ios = 0;
-    uint32_t beam_width = 200;
+    uint32_t beam_width = 35;
 
     NeighborPriorityQueue *retset;
     uint32_t *is_visited;
@@ -830,7 +830,7 @@ NewVector *new_search_k_nearest_neighbors(char *index_table_name, NewVector *ini
 
     NewVector *res_vector_ids;
 
-    uint32_t retset_size = 100;
+    uint32_t retset_size = 90;
 
     retset = (NeighborPriorityQueue *)palloc(sizeof(NeighborPriorityQueue));
     init_queue(retset, retset_size);
