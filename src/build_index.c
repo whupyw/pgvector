@@ -525,7 +525,7 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
 
     char query[256];
     snprintf(query, sizeof(query), "SELECT %s FROM %s", column_name, table_name);
-    int ret = SPI_exec(query, 0);
+    int ret = SPI_exec(query, *npts);
     if (ret != SPI_OK_SELECT)
     {
         elog(ERROR, "SPI_exec failed: %s", query);
@@ -571,7 +571,7 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
 /* 采样函数 */
 void gen_random_slice(const float *inputdata, size_t npts, size_t ndims, double p_val, float **sampled_data, size_t *slice_size)
 {
-    p_val = 25000 / npts;
+    p_val = 0.1;
     elog(LOG, "Generating random slice of data with p_val = %.2f", p_val);
     if (p_val > 1.0)
         p_val = 1.0;
@@ -892,7 +892,9 @@ void generate_quantized_data(
     size_t train_dim = 128;
     size_t npts;
     size_t ndims; // 128维向量
-    get_vector_data_param(table_name, column_name, &npts, &ndims);
+    // get_vector_data_param(table_name, column_name, &npts, &ndims);
+    npts = 1000000;
+    ndims = 128;
     float *sampled_data = NULL;
     size_t slice_size = 0;
 
