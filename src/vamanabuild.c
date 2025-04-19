@@ -249,6 +249,7 @@ static void BuildGraph(VamanaBuildState *buildstate, ForkNumber forkNum)
     // elog(INFO,"npt_val = %d, dim_val = %d", npt_val, dim_val);
     //  gen_random_slice(aa, npt_val, dim_val, 0.01, &storage, &slice_size);
     const char *dataFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_base.fbin";
+    const char *dataFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/sift_base.fbin";
     const char *indexFile = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test";
     // R 32 邻居数 L 64 最大候选集大小
     const char *buildParams = "32 50 200 1 1";

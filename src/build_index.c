@@ -571,6 +571,7 @@ void load_vector_data_to_mem(const char *table_name, const char *column_name, si
 /* 采样函数 */
 void gen_random_slice(const float *inputdata, size_t npts, size_t ndims, double p_val, float **sampled_data, size_t *slice_size)
 {
+    p_val = 25000 / npts;
     elog(LOG, "Generating random slice of data with p_val = %.2f", p_val);
     if (p_val > 1.0)
         p_val = 1.0;

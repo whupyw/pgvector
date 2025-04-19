@@ -1619,7 +1619,7 @@ Datum test_recall(PG_FUNCTION_ARGS)
 	// 加载真值集
 	File *truth_file;
 	// uint32_t my_init_ids[100] = {};
-	const char *truthfilepath = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_groundtruth.ivecs";
+	const char *truthfilepath = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/sift_groundtruth.ivecs";
 	if ((truth_file = fopen(truthfilepath, "rb")) == NULL)
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -1662,7 +1662,7 @@ Datum test_recall(PG_FUNCTION_ARGS)
 
 	// 加载query数据集
 	float *buffer;
-	const char *filepath = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/siftsmall_query.fvecs";
+	const char *filepath = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/sift_query.fvecs";
 	FILE *file;
 	uint32_t dim = 128;
 
@@ -1707,8 +1707,8 @@ Datum test_recall(PG_FUNCTION_ARGS)
 		bytes_read += n * sizeof(float);
 
 		// 进行查询
-
-		uint32_t init_id1 = calculate_search_entry(10000);
+		size_t npts = 1000000;
+		uint32_t init_id1 = calculate_search_entry(npts);
 		const char *table_name = "vectors_index_table";
 		NewVector *init_ids = (NewVector *)palloc(sizeof(NewVector));
 		new_vector_init_with_capacity(init_ids, sizeof(uint32_t), 10);
@@ -1720,7 +1720,7 @@ Datum test_recall(PG_FUNCTION_ARGS)
 		// uint32_t init_id = 2176; // 0-9999
 
 		// uint32_t k = 20;
-		NewVector *target_nbrs = new_search_k_nearest_neighbors(table_name, init_ids, k, vec, 10000);
+		NewVector *target_nbrs = new_search_k_nearest_neighbors(table_name, init_ids, k, vec, npts);
 		char result[1024]; // 足够大的输出缓冲区
 		new_vector_to_string(target_nbrs, result, sizeof(result));
 		elog(INFO, "result:%s", result);

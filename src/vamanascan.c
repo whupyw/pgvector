@@ -30,7 +30,7 @@
 #include "new_vector.h"
 #include <utils/array.h>
 #include "vamana_index.h"
-#include "bit_array.h" 
+#include "bit_array.h"
 #include <time.h>
 #include <stdlib.h>
 /* Vamana图搜索 */
@@ -244,14 +244,15 @@ bool vamanagettuple(IndexScanDesc scan, ScanDirection dir)
         {
             target->x[i] = ((float)rand() / RAND_MAX) * 50.0f; // 生成 [0.0, 100.0)
         }
-        uint32_t init_id = calculate_search_entry(10000);
-        uint32_t init_id2 = calculate_search_entry(10000);
+        size_t num_points = 1000000;
+        uint32_t init_id = calculate_search_entry(num_points / 2);
+        uint32_t init_id2 = calculate_search_entry(num_points / 2) + (num_points / 2);
         NewVector *init_ids = (NewVector *)palloc(sizeof(NewVector));
         new_vector_init_with_capacity(init_ids, sizeof(uint32_t), 2);
         new_vector_push_back(init_ids, &init_id);
         new_vector_push_back(init_ids, &init_id2);
         uint32_t k = 10;
-        NewVector *target_nbrs = new_search_k_nearest_neighbors(table_name, init_ids, k, target, 10000);
+        NewVector *target_nbrs = new_search_k_nearest_neighbors(table_name, init_ids, k, target, num_points);
         const char *origin_table_name = "vectors";
         new_vector_init_with_capacity(heaptids, sizeof(ItemPointer), k + 1);
         get_heaptids_from_table(origin_table_name, target_nbrs, heaptids);
