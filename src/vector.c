@@ -1607,6 +1607,15 @@ Datum test_func(PG_FUNCTION_ARGS)
 PG_FUNCTION_INFO_V1(test_recall);
 Datum test_recall(PG_FUNCTION_ARGS)
 {
+	//
+	const char *recall_csv_path = "/mnt/c/dev/repository/graduation/my_pgvector/pgvector/my_test/recall_result.csv";
+	FILE *recall_csv_file = fopen(recall_csv_path, "w");
+	if (!recall_csv_file)
+		ereport(ERROR, (errmsg("无法打开召回率输出文件: %s", recall_csv_path)));
+
+	// 写入标题
+	fprintf(recall_csv_file, "query_id,recall\n");
+
 	// 加载真值集
 	File *truth_file;
 	// uint32_t my_init_ids[100] = {};
@@ -1737,12 +1746,17 @@ Datum test_recall(PG_FUNCTION_ARGS)
 		// 本次查询的召回率
 		float recall = (float)hit / (float)k;
 		elog(INFO, "Query %d recall: %.2f", count, recall);
+		fprintf(recall_csv_file, "%d,%.4f\n", count, recall);
 		count++;
 		recall_sum += recall;
 	}
 
 	float avg_recall = recall_sum / query_total;
 	elog(INFO, "Average recall: %.4f", avg_recall);
+
+	fprintf(recall_csv_file, "avg,%.4f\n", avg_recall);
+	fclose(recall_csv_file);
+	elog(INFO, "召回率结果写入完毕：%s", recall_csv_path);
 
 	free(ids);
 	free(buffer);
