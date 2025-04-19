@@ -648,7 +648,7 @@ int generate_pq_pivots(const float *train_data, size_t num_train, uint32_t dim, 
     elog(LOG, "Generating PQ pivots");
     /* Zero-mean normalization */
     float *centroid = (float *)palloc0(dim * sizeof(float));
-    // make_zero_mean = false;
+    make_zero_mean = false;
     if (make_zero_mean)
     {
         for (size_t d = 0; d < dim; d++)
@@ -1079,16 +1079,23 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath,
         return 1;
     }
     elog(INFO, "Memory usage: %ld kB\n", usage.ru_maxrss);
-    elog(LOG, "开始构建索引: R=%u, L=%u, 线程数=%u", R, L, num_threads);
+    elog(INFO, "开始生成PQ码本和压缩向量");
 
     // 生成量化数据
     generate_quantized_data(dataFilePath, pq_pivots_path, pq_compressed_vectors_path, compareMetric, p_val, num_pq_chunks, use_opq, codebook_prefix, table_name, column_name);
-
+    elog(INFO, "生成PQ码本和压缩向量完成");
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "Memory usage: %ld kB\n", usage.ru_maxrss);
     // 构建索引
-    elog(LOG, "开始构建索引");
+    elog(INFO, "开始构建Vamana索引");
     NewVector *neighbor_pointer = NULL;
     neighbor_pointer = build_merged_vamana_index(pq_pivots_path, pq_compressed_vectors_path, indexing_ram_budget, R, L, num_threads, 25000, 128);
     /* 清理临时文件（如果有的话） */
+    elog(INFO, "构建Vamana索引完成");
     if (getrusage(RUSAGE_SELF, &usage) == -1)
     {
         perror("getrusage");
