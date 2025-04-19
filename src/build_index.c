@@ -892,8 +892,6 @@ void generate_quantized_data(
     size_t npts;
     size_t ndims; // 128维向量
     get_vector_data_param(table_name, column_name, &npts, &ndims);
-    float *inputdata = (float *)palloc(npts * ndims * sizeof(float));
-    load_vector_data_to_mem(table_name, column_name, &npts, &ndims, inputdata);
     float *sampled_data = NULL;
     size_t slice_size = 0;
 
@@ -902,6 +900,8 @@ void generate_quantized_data(
     if (!file_exists(pq_pivots_path))
     {
         // 生成随机数据切片
+        float *inputdata = (float *)palloc(npts * ndims * sizeof(float));
+        load_vector_data_to_mem(table_name, column_name, &npts, &ndims, inputdata);
         gen_random_slice(inputdata, npts, ndims, p_val, &sampled_data, &slice_size);
         elog(LOG, "Training data with %zu samples loaded.", slice_size); // 使用 NOTICE 级别
         pfree(inputdata);
