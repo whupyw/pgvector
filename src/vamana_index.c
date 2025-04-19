@@ -225,7 +225,7 @@ bool new_save_neighbors_to_disk(NewVector *neighbors, const char *table_name)
         // 记录id
         vector_push_back(ids, id);
     }
-    elog(INFO, "记录vector_id");
+    //elog(INFO, "记录vector_id");
     // 遍历每一条记录，根据 `id` 更新邻居
     for (size_t i = 0; i < npts; i++)
     {
@@ -876,7 +876,7 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
     // 函数会创建副本并进行剪枝，确保每个节点的邻居池不会过大，并且通过距离和其他准则优化邻居池。
     // 在操作过程中，为了确保线程安全，函数使用了锁来保护对邻居池的修改。
     // 最终，剪枝后的新邻居池会被写回到 `_graph_store` 中。
-    elog(INFO, "Inter-inserting neighbors for node %u", node);
+    //elog(INFO, "Inter-inserting neighbors for node %u", node);
     assert(pruned_list->size != 0);
     uint32_t max_candidate_size = 100;
 
@@ -1148,7 +1148,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     //      elog(INFO, "node:%d,neighbours:%d,neighbor:%s", i, cur_neighbors->size, msg);
     //      pfree(msg);
     //  }
-    elog(INFO, "Linking completed.");
+    //elog(INFO, "Linking completed.");
 }
 
 static double estimate_ram_usage(size_t num_points, uint32_t dim, size_t data_size, uint32_t R)

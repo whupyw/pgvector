@@ -240,7 +240,7 @@ static void BuildGraph(VamanaBuildState *buildstate, ForkNumber forkNum)
     {
         elog(ERROR, "create index table failed");
     }
-    elog(INFO, "Hello, Vamana!");
+    //elog(INFO, "Hello, Vamana!");
     size_t slice_size = 0;
 
     // 加载向量数据
