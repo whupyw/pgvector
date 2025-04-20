@@ -1653,6 +1653,8 @@ Datum test_recall(PG_FUNCTION_ARGS)
 		memcpy(ids + count_query * 10, new_buffer, 10 * sizeof(int32_t));
 		count_query++;
 		elog(INFO, "count_query:%d", count_query);
+		if (count_query == 100)
+			break;
 	}
 
 	for (int i = 0; i < 10; i++)
@@ -1749,6 +1751,8 @@ Datum test_recall(PG_FUNCTION_ARGS)
 		fprintf(recall_csv_file, "%d,%.4f\n", count, recall);
 		count++;
 		recall_sum += recall;
+		if (count == 100)
+			break;
 	}
 
 	float avg_recall = recall_sum / query_total;

@@ -39,6 +39,7 @@
         "relscan.h": "c",
         "spi.h": "c",
         "cmath": "c",
-        "sampling.h": "c"
+        "sampling.h": "c",
+        "unistd.h": "c"
     }
 }

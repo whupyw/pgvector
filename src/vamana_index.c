@@ -9,6 +9,7 @@
 #include <math.h>
 #include "executor/spi.h"
 #include "lib/stringinfo.h"
+#include <sys/resource.h>
 #define GRAPH_SLACK_FACTOR 1.3f
 typedef struct
 {
@@ -225,8 +226,8 @@ bool new_save_neighbors_to_disk(NewVector *neighbors, const char *table_name)
         // 记录id
         vector_push_back(ids, id);
     }
-    //elog(INFO, "记录vector_id");
-    // 遍历每一条记录，根据 `id` 更新邻居
+    // elog(INFO, "记录vector_id");
+    //  遍历每一条记录，根据 `id` 更新邻居
     for (size_t i = 0; i < npts; i++)
     {
         // 获取当前记录的 `id` id = 1 i = 0
@@ -448,7 +449,7 @@ float get_distance_to_target_by_id(uint32_t vec_id, Vector *vec_b, uint32_t dim)
     if (static_compressed_data == NULL || static_pivot_data == NULL)
     {
         elog(ERROR, "static_compressed_data or static_pivot_data is NULL");
-        return 0.0;
+        //return 0.0;
     }
 
     float *vector_a = (float *)palloc(sizeof(float) * dim);
@@ -876,7 +877,7 @@ void inter_insert(uint32_t node, MyVector *pruned_list, uint32_t R, Scratch *scr
     // 函数会创建副本并进行剪枝，确保每个节点的邻居池不会过大，并且通过距离和其他准则优化邻居池。
     // 在操作过程中，为了确保线程安全，函数使用了锁来保护对邻居池的修改。
     // 最终，剪枝后的新邻居池会被写回到 `_graph_store` 中。
-    //elog(INFO, "Inter-inserting neighbors for node %u", node);
+    // elog(INFO, "Inter-inserting neighbors for node %u", node);
     assert(pruned_list->size != 0);
     uint32_t max_candidate_size = 100;
 
@@ -992,9 +993,16 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
 {
 
     // 初始化邻接表
+    elog(INFO, "Initializing neighbors for %zu points", num_points);
     NewVector *my_neighbors_vectors = (NewVector *)malloc(sizeof(NewVector));
     generate_random_neighbors_for_vector_empty(my_neighbors_vectors, (size_t)num_points, (size_t)R);
-
+    struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "Memory usage: %ld kB\n", usage.ru_maxrss);
     // // 加载原始向量
     // size_t base_vector_num = 10000;
     // size_t base_vector_dim = 128;
@@ -1087,7 +1095,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     // }
 
     // 最终剪枝
-    elog(INFO, "Final pruning started.");
+    // elog(INFO, "Final pruning started.");
     // #pragma omp parallel for schedule(dynamic, 2048)
     for (i = 0; i < num_points; i++)
     {
@@ -1148,7 +1156,7 @@ void vamana_link(float *pivots_data, uint32_t *compressed_vectors, uint32_t *nei
     //      elog(INFO, "node:%d,neighbours:%d,neighbor:%s", i, cur_neighbors->size, msg);
     //      pfree(msg);
     //  }
-    //elog(INFO, "Linking completed.");
+    // elog(INFO, "Linking completed.");
 }
 
 static double estimate_ram_usage(size_t num_points, uint32_t dim, size_t data_size, uint32_t R)
@@ -1177,25 +1185,41 @@ NewVector *build(const char *compressed_vec_file, const char *pivots_file, uint3
 
     // 加载码本
     /* Load pivot data */
+    struct rusage usage;
+    elog(INFO, "Loading PQ pivots");
     ret = load_pq_pivots(pivots_file, &full_pivot_data, &num_centers, &dim, &centroid, &chunk_offsets, &num_pq_chunks);
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "Memory usage: %ld kB\n", usage.ru_maxrss);
 
     // 加载压缩向量
     // 1.向量数
     // 2.分块数
+    elog(INFO, "Loading compressed_vectors");
     if (load_compressed_vectors(compressed_vec_file, &num_points, &num_pq_chunks, &compressed_data) != 0)
     {
         elog(ERROR, "Error loading compressed vectors");
         return;
     }
+    if (getrusage(RUSAGE_SELF, &usage) == -1)
+    {
+        perror("getrusage");
+        return 1;
+    }
+    elog(INFO, "Memory usage: %ld kB\n", usage.ru_maxrss);
     static_compressed_data = compressed_data;
     static_pivot_data = full_pivot_data;
 
     // 生成随机邻居
     uint32_t *neighbors = NULL;
-    NewVector *neighbors_vectors = (NewVector *)malloc(sizeof(NewVector));
+    // NewVector *neighbors_vectors = (NewVector *)malloc(sizeof(NewVector));
+    NewVector *neighbors_vectors = NULL;
     // generate_random_neighbors_for_vector(neighbors_vectors, num_points, R);
-    generate_random_neighbors_for_vector_empty(neighbors_vectors, (size_t)num_points, (size_t)R);
-    static_neighbors_vectors = neighbors_vectors;
+    // generate_random_neighbors_for_vector_empty(neighbors_vectors, (size_t)num_points, (size_t)R);
+    // static_neighbors_vectors = neighbors_vectors;
     // check neighbors
     // elog(INFO, "check neighbors size");
     // for (size_t i = 0; i < num_points; i++)
@@ -1217,7 +1241,7 @@ NewVector *build_merged_vamana_index(const char *pivots_data, const char *compre
 
     if (full_index_ram < ram_budget * 1024 * 1024 * 1024)
     {
-        elog(INFO, "Full index fits in RAM budget: %.2f GiB", full_index_ram / (1024 * 1024 * 1024));
+        // elog(INFO, "Full index fits in RAM budget: %.2f GiB", full_index_ram / (1024 * 1024 * 1024));
 
         // 链接
         NewVector *neighbor_vec = build(compressed_vec, pivots_data, R, L, num_threads, 8);

@@ -777,7 +777,7 @@ int generate_pq_data_from_pivots(const char *data_file, uint32_t num_centers, ui
     fread(&basedim32, sizeof(uint32_t), 1, base_reader);
     // 向量数量根据数据库来定
     num_points = (size_t)npts32;
-    get_vector_data_param(table_name, column_name, &num_points, &tmp_ndims);
+    // get_vector_data_param(table_name, column_name, &num_points, &tmp_ndims);
     dim = (size_t)basedim32;
 
     ctx = AllocSetContextCreate(CurrentMemoryContext,

@@ -242,7 +242,8 @@ bool vamanagettuple(IndexScanDesc scan, ScanDirection dir)
         srand(time(NULL)); // 用当前时间作为随机种子
         for (uint32_t i = 0; i < 128; i++)
         {
-            target->x[i] = ((float)rand() / RAND_MAX) * 50.0f; // 生成 [0.0, 100.0)
+            // target->x[i] = ((float)rand() / RAND_MAX) * 50.0f; // 生成 [0.0, 100.0)
+            target->x[i] = (float)(rand() % 120 + 1);
         }
         size_t num_points = 1000000;
         uint32_t init_id = calculate_search_entry(num_points / 2);
