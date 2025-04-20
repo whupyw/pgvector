@@ -379,6 +379,39 @@ float get_distance(float *vector1, float *vector2, size_t dim)
 
 void get_vec_from_compressed_data(const uint32_t *compressed_data, float *pivots_data, uint32_t location, float *vector, uint32_t num_pq_chunks, uint32_t dim)
 {
+    // DEBUG
+    // 从压缩向量中获取向量聚类中心
+    // 再从码本中获取向量
+    // elog(INFO, "get_distance starts");
+    if (static_pivot_data == NULL)
+    {
+        uint32_t num_centers = 0;
+        uint32_t dim = 0;
+        float *centroid = NULL;
+        size_t *chunk_offsets = NULL;
+        uint32_t num_pq_chunks = 0;
+        const char *pivots_file = '/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_pivots.bin';
+        float *full_pivot_data = NULL;
+        int ret = load_pq_pivots(pivots_file, &full_pivot_data, &num_centers, &dim, &centroid, &chunk_offsets, &num_pq_chunks);
+        static_pivot_data = full_pivot_data;
+        elog(ERROR, "static_compressed_data or static_pivot_data is NULL");
+        // return 0.0;
+    }
+
+    if (static_compressed_data == NULL)
+    {
+        const char *compressed_vec_file = '/mnt/c/dev/repository/graduation/my_pgvector/pgvector/data/test_pq_compressed_vectors.bin';
+        size_t num_points = 0;
+        uint32_t num_pq_chunks = 0;
+        uint32_t *compressed_data = NULL;
+        if (load_compressed_vectors(compressed_vec_file, &num_points, &num_pq_chunks, &compressed_data) != 0)
+        {
+            elog(ERROR, "Error loading compressed vectors");
+            return;
+        }
+        static_compressed_data = compressed_data;
+    }
+
     uint32_t *code = &compressed_data[location * num_pq_chunks];
     uint32_t subvector_dim = dim / num_pq_chunks;
     uint32_t num_centers = 256;
@@ -449,7 +482,7 @@ float get_distance_to_target_by_id(uint32_t vec_id, Vector *vec_b, uint32_t dim)
     if (static_compressed_data == NULL || static_pivot_data == NULL)
     {
         elog(ERROR, "static_compressed_data or static_pivot_data is NULL");
-        //return 0.0;
+        // return 0.0;
     }
 
     float *vector_a = (float *)palloc(sizeof(float) * dim);
