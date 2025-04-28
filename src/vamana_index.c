@@ -473,6 +473,17 @@ float get_distance_by_id(uint32_t vec_a, uint32_t vec_b)
     return dist;
 }
 
+void get_distances_by_id(MyVector *ids, uint32_t target_id, NewVector *distance)
+{
+#pragma omp parallel for
+    for (size_t i = 0; i < ids->size; i++)
+    {
+        uint32_t id = vector_get(ids, i);
+        float dist = get_distance_to_target_by_id(id, target_id, 128);
+        new_vector_push_back(distance, &dist);
+    }
+}
+
 float get_distance_to_target_by_id(uint32_t vec_id, Vector *vec_b, uint32_t dim)
 {
     // DEBUG
