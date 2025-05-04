@@ -957,7 +957,7 @@ FOR TYPE vector USING vamana AS
     FUNCTION    2    vector_norm(vector),
     FUNCTION    3    l2_normalize(vector);
 
-CREATE OR REPLACE FUNCTION load_fbin_to_pgvector(filepath TEXT) RETURNS INTEGER
+CREATE OR REPLACE FUNCTION load_dataset_to_pgvector(filepath TEXT) RETURNS INTEGER
     AS 'MODULE_PATHNAME'
     LANGUAGE C STRICT;
 -- -- 创建配置参数

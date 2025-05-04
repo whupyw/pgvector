@@ -62,6 +62,7 @@ void _PG_init(void)
 	HalfvecInit();
 	HnswInit();
 	IvfflatInit();
+	VamanaInit();
 }
 
 /*
@@ -1287,8 +1288,8 @@ Datum hello_world(PG_FUNCTION_ARGS)
 	PG_RETURN_TEXT_P(result);
 }
 
-PG_FUNCTION_INFO_V1(load_fbin_to_pgvector);
-Datum load_fbin_to_pgvector(PG_FUNCTION_ARGS)
+PG_FUNCTION_INFO_V1(load_dataset_to_pgvector);
+Datum load_dataset_to_pgvector(PG_FUNCTION_ARGS)
 {
 	text *filepath_text = PG_GETARG_TEXT_PP(0);
 	char *filepath = text_to_cstring(filepath_text);

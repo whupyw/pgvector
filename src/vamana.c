@@ -13,6 +13,8 @@
 
 PG_FUNCTION_INFO_V1(vamanahandler);
 
+static relopt_kind vamana_relopt_kind;
+
 /* 代价估算函数 */
 static void vamanacostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
                                Cost *indexStartupCost, Cost *indexTotalCost,
@@ -32,16 +34,14 @@ static void vamanacostestimate(PlannerInfo *root, IndexPath *path, double loop_c
 static bytea *
 vamanaoptions(Datum reloptions, bool validate)
 {
-    // static const relopt_parse_elt tab[] = {
-    //     {"r", RELOPT_TYPE_INT, offsetof(VamanaOptions, r)},
-    //     {"l", RELOPT_TYPE_INT, offsetof(VamanaOptions, l)},
-    //     {"alpha", RELOPT_TYPE_REAL, offsetof(VamanaOptions, alpha)}};
+    static const relopt_parse_elt tab[] = {
+        {"r", RELOPT_TYPE_INT, offsetof(VamanaOptions, r)},
+        {"l", RELOPT_TYPE_INT, offsetof(VamanaOptions, l)};
 
-    // return (bytea *)build_reloptions(reloptions, validate,
-    //                                  RELOPT_KIND_VAMANA,
-    //                                  sizeof(VamanaOptions),
-    //                                  tab, lengthof(tab));
-    return NULL;
+    return (bytea *)build_reloptions(reloptions, validate,
+                                     vamana_relopt_kind,
+                                     sizeof(VamanaOptions),
+                                     tab, lengthof(tab));
 }
 
 /* 构建阶段名称函数 */
@@ -57,6 +57,14 @@ vamanabuildphasename(int64 phasenum)
     default:
         return NULL;
     }
+}
+
+void VamanaInit(void){
+    vamana_relopt_kind = add_reloption_kind();
+    add_int_reloption(vamana_relopt_kind, "r", "Max number of connections",
+                      32, 32, 32, AccessExclusiveLock);
+    add_int_reloption(vamana_relopt_kind, "l", "Size of the candidate list",
+                      50, 50, 50, AccessExclusiveLock);
 }
 
 /* 验证函数 */

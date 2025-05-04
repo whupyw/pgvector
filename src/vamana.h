@@ -185,6 +185,8 @@ typedef struct VamanaBuildState
 
 typedef struct VamanaOptions
 {
+    int r;
+    int l;
 } VamanaOptions;
 
 typedef union
@@ -247,6 +249,7 @@ void vamanarescan(IndexScanDesc scan, ScanKey keys, int nkeys,
                   ScanKey orderbys, int norderbys);
 bool vamanagettuple(IndexScanDesc scan, ScanDirection dir);
 void vamanaendscan(IndexScanDesc scan);
+void VamanaInit(void);
 Buffer VamanaNewBuffer(Relation index, ForkNumber forkNum);
 bool create_index_table(char *index_name, char *table_name, int dimensions);
 void get_vectors_and_neighbors(char *index_table_name, NewVector *re_vectors, NewVector *target_vectors);
