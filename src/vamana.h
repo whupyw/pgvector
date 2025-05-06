@@ -102,6 +102,8 @@ typedef struct VamanaMetaPageData
     // 图结构参数
     uint32 dimensions;
     uint32 R;
+    uint32 L;
+    char * table_name;
     uint32 num_points;
     uint32 entry_point;
     uint16 m;
