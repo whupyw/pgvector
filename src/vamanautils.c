@@ -826,7 +826,7 @@ NewVector *new_search_k_nearest_neighbors(char *index_table_name, NewVector *ini
     // 存储准备查询的节点
     NewVector *frontier_nhoods;
     NewVector *frontier_nhoods_req;
-    // NewVector *vector_caches;
+    NewVector *vector_caches;
     //  缓存机制
 
     NewVector *res_vector_ids;
@@ -849,8 +849,8 @@ NewVector *new_search_k_nearest_neighbors(char *index_table_name, NewVector *ini
 
     res_vector_ids = (NewVector *)palloc(sizeof(NewVector));
     new_vector_init_with_capacity(res_vector_ids, sizeof(uint32_t), k + 1);
-    // vector_caches = (NewVector *)palloc(sizeof(NewVector));
-    // new_vector_init_with_capacity(vector_caches, sizeof(VectorCache), 3 * beam_width);
+    vector_caches = (NewVector *)palloc(sizeof(NewVector));
+    new_vector_init_with_capacity(vector_caches, sizeof(VectorCache), 3 * beam_width);
 
     // 获取初始节点的id和dist 加入候选集
     for (size_t i = 0; i < init_ids->size; i++)
@@ -910,9 +910,9 @@ NewVector *new_search_k_nearest_neighbors(char *index_table_name, NewVector *ini
         // 加载frontier中的节点的邻居
         // select vector and neighbors from disk
         new_get_vectors_and_neighbors(index_table_name, frontier_nhoods, frontier_nhoods_req);
+        new_vector_append(vector_caches, frontier_nhoods);
         total_visit_size += frontier_nhoods_req->size;
         new_vector_clear(frontier_nhoods_req);
-        // new_vector_append(vector_caches, frontier_nhoods);
 
         // 处理缓存中的邻居
         // 拿出一个节点
