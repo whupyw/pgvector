@@ -84,6 +84,19 @@ void VamanaInitPage(Buffer buf, Page page)
     VamanaPageGetOpaque(page)->page_id = VAMANA_PAGE_ID;
 }
 
+bool is_in_vector_cache(NewVector *cache, uint32_t id)
+{
+    for (size_t i = 0; i < cache->size; ++i)
+    {
+        VectorCache *vc = (VectorCache *)new_vector_get(cache, i);
+        if (vc->vector_id == id)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool create_index_table(char *index_name, char *table_name, int dimensions)
 {
     const char *source_table = table_name;
@@ -983,13 +996,11 @@ NewVector *new_search_k_nearest_neighbors(char *index_table_name, NewVector *ini
             // 判断哪些在内存哪些不在
             // 先全部从磁盘中获取
             uint32_t n_id = ((Neighbor *)new_vector_get(full_retset, i))->id;
-            // elog(INFO, "isert_id: %d", n_id);
-            //  int ret = kv_insert(my_kv_table, n_id, i);
-            //  if (ret == 0)
-            //  {
-            //      elog(ERROR, "kv_insert failed");
-            //  }
-            new_vector_push_back(frontier_nhoods_req, &n_id);
+            // 判断是否已经存在于缓存中
+            if (!is_in_vector_cache(vector_caches, n_id))
+            {
+                new_vector_push_back(frontier_nhoods_req, &n_id);
+            }
         }
 
         new_get_vectors(index_table_name, frontier_nhoods, frontier_nhoods_req);
