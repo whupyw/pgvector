@@ -20,6 +20,8 @@
 #define VAMANA_DEFAULT_L 100     // 默认搜索列表大小
 #define VAMANA_DEFAULT_ALPHA 1.2 // 默认alpha参数
 
+#define VAMANA_METAPAGE_BLKNO 0
+
 #define VAMANA_MAGIC_NUMBER 0xA953A953 // 文件魔数校验
 #define VAMANA_VERSION 1               // 版本
 #define VAMANA_PAGE_ID 0xFF91          // 页面类型标识
@@ -101,12 +103,10 @@ typedef struct VamanaMetaPageData
 
     // 图结构参数
     uint32 dimensions;
-    uint32 R;
-    uint32 L;
+    uint32 r;
+    uint32 l;
     char * table_name;
     uint32 num_points;
-    uint32 entry_point;
-    uint16 m;
 
     uint16 efConstruction;
     BlockNumber entryBlkno;

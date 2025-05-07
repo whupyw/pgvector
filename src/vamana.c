@@ -36,14 +36,13 @@ vamanaoptions(Datum reloptions, bool validate)
 {
     static const relopt_parse_elt tab[] = {
         {"r", RELOPT_TYPE_INT, offsetof(VamanaOptions, r)},
-        {"l", RELOPT_TYPE_INT, offsetof(VamanaOptions, l)};
-
+        {"l", RELOPT_TYPE_INT, offsetof(VamanaOptions, l)}
+    };
     return (bytea *)build_reloptions(reloptions, validate,
                                      vamana_relopt_kind,
                                      sizeof(VamanaOptions),
                                      tab, lengthof(tab));
 }
-
 /* 构建阶段名称函数 */
 static char *
 vamanabuildphasename(int64 phasenum)

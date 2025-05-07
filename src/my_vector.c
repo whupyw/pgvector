@@ -89,7 +89,7 @@ uint32_t vector_get(MyVector *vec, size_t index)
 // 设置向量元素
 void vector_set(MyVector *vec, size_t index, uint32_t value)
 {
-    if (index >= vec->size)
+    if (index >= vec->capacity)
     {
         fprintf(stderr, "Index out of bounds\n");
         exit(1);

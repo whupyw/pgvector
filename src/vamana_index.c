@@ -473,15 +473,38 @@ float get_distance_by_id(uint32_t vec_a, uint32_t vec_b)
     return dist;
 }
 
-void get_distances_by_id(MyVector *ids, uint32_t target_id, NewVector *distance)
+void get_distances_by_id(MyVector *ids, float *target_vec, MyVector *distance)
 {
 #pragma omp parallel for
     for (size_t i = 0; i < ids->size; i++)
     {
         uint32_t id = vector_get(ids, i);
-        float dist = get_distance_to_target_by_id(id, target_id, 128);
-        new_vector_push_back(distance, &dist);
+        float dist = get_distance_to_target_by_id_using_float(id, target_vec, 128);
+        vector_set(distance, i, dist);
     }
+    distance->size = ids->size;
+}
+
+float get_distance_to_target_by_id_using_float(uint32_t vec_id, float *vec_b, uint32_t dim)
+{
+    // DEBUG
+    // 从压缩向量中获取向量聚类中心
+    // 再从码本中获取向量
+    // elog(INFO, "get_distance starts");
+    if (static_compressed_data == NULL || static_pivot_data == NULL)
+    {
+        elog(ERROR, "static_compressed_data or static_pivot_data is NULL");
+        // return 0.0;
+    }
+
+    float *vector_a = (float *)malloc(sizeof(float) * dim);
+    get_vec_from_compressed_data(static_compressed_data, static_pivot_data, vec_id, vector_a, pq_chunk, 128);
+
+    float *vector_b = vec_b;
+    float dist = get_distance(vector_a, vector_b, dim);
+    // elog(INFO, "get_distance ends");
+    free(vector_a);
+    return dist;
 }
 
 float get_distance_to_target_by_id(uint32_t vec_id, Vector *vec_b, uint32_t dim)
@@ -502,6 +525,7 @@ float get_distance_to_target_by_id(uint32_t vec_id, Vector *vec_b, uint32_t dim)
     float *vector_b = vec_b->x;
     float dist = get_distance(vector_a, vector_b, dim);
     // elog(INFO, "get_distance ends");
+    pfree(vector_a);
     return dist;
 }
 
@@ -549,9 +573,9 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
     size_t search_size = 0;
     // 用来存储搜索邻居的结果
     MyVector *id_scratch = (MyVector *)palloc(sizeof(MyVector));
-    vector_init_with_capacity(id_scratch, 200);
+    vector_init_with_capacity(id_scratch, 150);
     MyVector *dist_scratch = (MyVector *)palloc(sizeof(MyVector));
-    vector_init_with_capacity(dist_scratch, 200);
+    vector_init_with_capacity(dist_scratch, 150);
 
     // 3.迭代过程 图搜索过程 获取候选集中未访问的节点
     while (has_unexpanded_node(L_nodes))
@@ -590,13 +614,14 @@ void iterate_to_fixed_point(Scratch *scratch, float *pivots_data, uint32_t *comp
             // 计算该节点和距离
             float *cur_vector = (float *)palloc(sizeof(float) * 128);
             get_vec_from_compressed_data(compressed_vectors, pivots_data, neighbor_id, cur_vector, pq_chunk, 128); // 计算距离
-            distance = get_distance(cur_vector, target_vector, 128);
-            // 存入距离列表
-            // neighbours_distances[i] = distance;
+            // distance = get_distance(cur_vector, target_vector, 128);
+            //  存入距离列表
+            //  neighbours_distances[i] = distance;
             vector_push_back(id_scratch, neighbor_id);
-            vector_push_back(dist_scratch, distance);
+            // vector_push_back(dist_scratch, distance);
             pfree(cur_vector);
         }
+        get_distances_by_id(id_scratch, target_vector, dist_scratch);
 
         // 将邻居加入候选池
         for (size_t i = 0; i < id_scratch->size; i++)

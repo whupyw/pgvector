@@ -245,7 +245,7 @@ bool vamanagettuple(IndexScanDesc scan, ScanDirection dir)
             // target->x[i] = ((float)rand() / RAND_MAX) * 50.0f; // 生成 [0.0, 100.0)
             target->x[i] = (float)(rand() % 120 + 1);
         }
-        size_t num_points = 1000000;
+        size_t num_points = 10000;
         uint32_t init_id = calculate_search_entry(num_points / 2);
         uint32_t init_id2 = calculate_search_entry(num_points / 2) + (num_points / 2);
         NewVector *init_ids = (NewVector *)palloc(sizeof(NewVector));

@@ -893,7 +893,7 @@ void generate_quantized_data(
     size_t npts;
     size_t ndims; // 128维向量
     // get_vector_data_param(table_name, column_name, &npts, &ndims);
-    npts = 1000000;
+    npts = 10000;
     ndims = 128;
     float *sampled_data = NULL;
     size_t slice_size = 0;

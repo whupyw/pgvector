@@ -97,6 +97,39 @@ bool is_in_vector_cache(NewVector *cache, uint32_t id)
     return false;
 }
 
+/*
+ * Get the metapage info
+ */
+void VamanaGetMetaPageInfo(Relation index, int *r, int *l, char *tab_name)
+{
+    Buffer buf;
+    Page page;
+    VamanaMetaPage metap;
+
+    buf = ReadBuffer(index, VAMANA_METAPAGE_BLKNO);
+    LockBuffer(buf, BUFFER_LOCK_SHARE);
+    page = BufferGetPage(buf);
+    metap = VamanaPageGetMeta(page);
+
+    if (unlikely(metap->magicNumber != VAMANA_MAGIC_NUMBER))
+        elog(ERROR, "vamana index is not valid");
+
+    if (r != NULL)
+        *r = metap->r;
+
+    if (l != NULL)
+    {
+        *l = NULL;
+    }
+
+    if (tab_name != NULL)
+    {
+        tab_name = metap->table_name;
+    }
+
+    UnlockReleaseBuffer(buf);
+}
+
 bool create_index_table(char *index_name, char *table_name, int dimensions)
 {
     const char *source_table = table_name;
@@ -993,31 +1026,30 @@ NewVector *new_search_k_nearest_neighbors(char *index_table_name, NewVector *ini
 
         for (size_t i = 0; i < full_retset->size; i++)
         {
-            // 判断哪些在内存哪些不在
-            // 先全部从磁盘中获取
-            uint32_t n_id = ((Neighbor *)new_vector_get(full_retset, i))->id;
-            // 判断是否已经存在于缓存中
-            if (!is_in_vector_cache(vector_caches, n_id))
+            // 从缓存中获取
+            Neighbor *nbr = (Neighbor *)new_vector_get(full_retset, i);
+            bool is_found = false;
+            for (int i = 0; i < vector_caches; i++)
             {
-                new_vector_push_back(frontier_nhoods_req, &n_id);
+                VectorCache *item = (VectorCache *)new_vector_get(vector_caches, i);
+                if (item->vector_id == nbr->id)
+                {
+                    nbr->distance = vector_L2_distance(target->dim, target->x, item->vector->x);
+                    is_found = true;
+                    break;
+                }
+            }
+            if (is_found == false)
+            {
+                elog(ERROR, "id not found");
+            }
+            else
+            {
+                break;
             }
         }
 
         new_get_vectors(index_table_name, frontier_nhoods, frontier_nhoods_req);
-
-        if (frontier_nhoods->size != full_retset->size)
-        {
-            elog(ERROR, "frontier_nhoods->size != full_retset->size");
-        }
-
-        for (size_t i = 0; i < full_retset->size; i++)
-        {
-            VectorCache *cur = new_vector_get(frontier_nhoods, i);
-            // elog(INFO, "isert_id: %d", cur->vector_id);
-            float true_dist = vector_L2_distance(target->dim, target->x, cur->vector->x);
-            Neighbor *nbr = (Neighbor *)new_vector_get(full_retset, i);
-            nbr->distance = true_dist;
-        }
     }
 
     new_vector_sort(full_retset, compare_neighbors);
